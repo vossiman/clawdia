@@ -131,9 +131,15 @@ The intent engine interface is abstract enough to swap backends later (direct An
 
 ### Hardware Wiring
 
-- IR receiver (TSOP38238) on GPIO 18
-- IR LED on GPIO 17 via NPN transistor (e.g., 2N2222) + 100 ohm resistor
-- Ground shared between Pi and transistor emitter
+**Note:** GPIO 17 and 18 are used by the ReSpeaker 2-Mic HAT (I2S CLK and button).
+IR uses alternative pins to avoid conflict.
+
+- IR receiver: AZDelivery KY-022 module (CHQ1838, 38kHz) on **GPIO 22**
+- IR transmitter: AZDelivery KY-005 module on **GPIO 24** via NPN transistor (2N2222) + 1K ohm base resistor
+- Transistor drives IR LED at higher current (~100-200mA) for 5-10m range
+- Configured via `/boot/config.txt` device tree overlays:
+  - `dtoverlay=gpio-ir,gpio_pin=22`
+  - `dtoverlay=gpio-ir-tx,gpio_pin=24`
 
 ### Software
 
@@ -227,7 +233,7 @@ clawdia/
 
 ## Future Enhancements
 
-- **TTS via speaker:** Add cloud TTS (OpenAI TTS / ElevenLabs) + USB/3.5mm speaker
+- **TTS via speaker:** Add cloud TTS (OpenAI TTS / ElevenLabs), speaker already purchased
 - **Display shield:** Show status, current command, weather on Pi display
 - **Camera:** Visual features (person detection, gesture control)
 - **OpenClawd integration:** Polling-based remote command execution

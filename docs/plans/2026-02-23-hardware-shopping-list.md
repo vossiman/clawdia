@@ -1,82 +1,145 @@
 # Clawdia - Hardware Shopping List
 
 **Date:** 2026-02-23
+**Status:** FINAL - Order confirmed
 
 ## What You Already Have
 
 | Item | Notes |
 |------|-------|
 | Raspberry Pi 4B | Main unit. Check RAM with `cat /proc/meminfo` when you boot it. |
+| ADELGO USB SoundBar Speaker | ASIN: B089W5PS29. USB-powered, plug and play. For future TTS audio output. |
+| Breadboard | For IR circuit prototyping. |
+| Jumper wires | M-M, M-F, F-F. |
+| MicroSD card | Need 32GB+ for Docker. Verify you have one. |
+| USB-C power supply | For the Pi 4B. Need 5V/3A minimum. |
 | Raspberry Pi 3B+ | Future use (satellite node, experiments) |
 | Display shield | Future use (status display) |
 | Camera module | Future use |
-| MicroSD card | Probably have one. Need 32GB+ for Docker. |
-| USB-C power supply | For the Pi 4B. Need 5V/3A minimum. |
 
-## What to Buy
+## Order (Amazon.de)
 
-### Essential (MVP)
+### 1. Keyestudio ReSpeaker 2-Mic Pi HAT
 
-| Item | Purpose | Approx. Price | Notes |
-|------|---------|---------------|-------|
-| ReSpeaker 2-Mic Pi HAT | Microphone array | ~12-18 EUR | Plugs directly onto Pi GPIO header. Built-in LEDs for status feedback. Has 3.5mm headphone jack for speaker output. Search: "ReSpeaker 2-Mic Pi HAT" on Amazon.de |
-| IR receiver TSOP38238 | Record remote codes | ~2-3 EUR | 38kHz carrier frequency (standard for most TV remotes). 3 pins: VCC, GND, OUT. Search: "TSOP38238" or "AZ-Delivery IR Empfaenger" |
-| IR LED (940nm) | Send IR commands to TV | ~1-2 EUR | Usually comes in packs of 5-10. Need 940nm wavelength. |
-| NPN transistor (2N2222 or BC547) | Drive IR LED from GPIO | ~1-2 EUR | GPIO can't supply enough current directly. Transistor acts as switch. |
-| Resistors (100 ohm + 1K ohm) | Current limiting | ~1 EUR | 100 ohm for IR LED, 1K ohm for transistor base. Any assortment pack works. |
-| Breadboard + jumper wires | Prototyping the IR circuit | ~3-5 EUR | For initial setup. Can solder permanently later. |
+- **ASIN:** B07H3T8SQY
+- **Price:** ~14 EUR
+- **Link:** https://www.amazon.de/-/en/gp/product/B07H3T8SQY
+- **What:** Dual MEMS microphones, WM8960 codec (I2S), 3.5mm headphone jack, 3x APA102 status LEDs, button
+- **Why:** Mic input for voice commands. Status LEDs for visual feedback (listening/processing/responding). Well-documented, Pi 4B compatible.
 
-**Or instead of individual IR components:**
+**GPIO pins used by this HAT (I2S + I2C):**
 
-| Item | Purpose | Approx. Price | Notes |
-|------|---------|---------------|-------|
-| IR Sender/Receiver module for Raspberry Pi | All-in-one IR board | ~6-10 EUR | Search "IR Sender Empfaenger Modul Raspberry Pi" on Amazon.de. Includes receiver + LED + driver circuit on one board. Saves soldering. |
-
-### Speaker (for future TTS, buy now)
-
-| Item | Purpose | Approx. Price | Notes |
-|------|---------|---------------|-------|
-| Small USB speaker or 3.5mm speaker | Audio output for TTS | ~10-20 EUR | Option A: USB speaker (simpler, just plug in). Option B: 3.5mm speaker plugged into ReSpeaker HAT's headphone jack. Doesn't need to be fancy - a small desktop speaker works fine. |
-
-**Specific recommendations:**
-- **Budget:** Any small USB-powered speaker (~10 EUR). Search "Mini USB Lautsprecher" on Amazon.de.
-- **Better:** Anker SoundCore Mini (~25 EUR, Bluetooth + AUX, decent sound, rechargeable). You probably already have something lying around.
-
-## Summary
-
-| Category | Est. Cost |
+| Function | GPIO (BCM) |
 |----------|-----------|
-| ReSpeaker 2-Mic HAT | ~15 EUR |
-| IR components (individual or module) | ~5-10 EUR |
-| Breadboard + wires | ~4 EUR |
-| Small speaker | ~10-20 EUR |
-| **Total** | **~35-50 EUR** |
+| I2C SDA | GPIO 2 |
+| I2C SCL | GPIO 3 |
+| I2S CLK | GPIO 18 |
+| I2S LRCLK | GPIO 19 |
+| I2S DAC | GPIO 21 |
+| I2S ADC | GPIO 20 |
+| Button | GPIO 17 |
 
-## Wiring Reference (for individual IR components)
+**IMPORTANT:** GPIO 17 and 18 are occupied. IR must use different pins.
+
+### 2. AZDelivery 5x KY-022 IR Receiver
+
+- **ASIN:** B07ZYZDW28
+- **Price:** 6.54 EUR
+- **Link:** https://www.amazon.de/-/en/gp/product/B07ZYZDW28
+- **What:** 5x CHQ1838 IR receiver modules (38kHz demodulator), breakout PCB with 3 pins (S/+/-), status LED
+- **Why:** Records TV remote IR codes. 38kHz carrier demodulation built in. 3-5V compatible. Functionally equivalent to TSOP38238 but on a convenient breakout board.
+
+### 3. AZDelivery 5x KY-005 IR Transmitter
+
+- **ASIN:** B07ZTQX59N
+- **Price:** 6.54 EUR
+- **Link:** https://www.amazon.de/-/en/AZDelivery-Transmitter-Transceiver-Compatible-Raspberry/dp/B07ZTQX59N
+- **What:** 5x IR LED transmitter modules on breakout PCB
+- **Why:** Sends IR commands to TV. Driven through an NPN transistor for increased range (5-10m).
+
+### 4. Transistor Assortment (480pcs)
+
+- **ASIN:** B0DGCXLVDM
+- **Price:** 9.99 EUR
+- **Link:** https://www.amazon.de/-/en/Transistor-Assortment-Values-480pcs-Transistors/dp/B0DGCXLVDM
+- **What:** 480-piece transistor assortment, multiple values including 2N2222/BC547
+- **Why:** NPN transistor drives IR LED with higher current (~100-200mA) for increased IR range. GPIO alone can only supply ~20mA.
+
+### 5. Resistor Assortment (525pcs)
+
+- **ASIN:** B0CL6XM7RD
+- **Price:** 7.99 EUR
+- **Link:** https://www.amazon.de/-/en/Innfeeltech-Tolerance-Resistor-Project-Experiments/dp/B0CL6XM7RD
+- **What:** 525-piece resistor assortment, 1 ohm to 1M ohm, 1% tolerance
+- **Why:** 1K ohm resistor limits base current to transistor (~3mA from GPIO). Also useful for future electronics projects.
+
+## Order Summary
+
+| # | Item | Price |
+|---|------|-------|
+| 1 | Keyestudio ReSpeaker 2-Mic HAT | ~14 EUR |
+| 2 | AZDelivery 5x KY-022 IR Receiver | 6.54 EUR |
+| 3 | AZDelivery 5x KY-005 IR Transmitter | 6.54 EUR |
+| 4 | Transistor assortment 480pcs | 9.99 EUR |
+| 5 | Resistor assortment 525pcs | 7.99 EUR |
+| | **Total** | **~45 EUR** |
+
+## Wiring Reference
+
+### IR Transmitter Circuit (KY-005 + transistor for range)
+
+Since the ReSpeaker HAT uses GPIO 17 and 18, IR uses **GPIO 22** (receiver) and **GPIO 24** (transmitter).
 
 ```
-Pi GPIO 17 ---[1K ohm]--- Base (B)
+IR TRANSMITTER (KY-005 module driven via NPN transistor):
+
+Pi GPIO 24 ---[1K ohm]--- Base (B)
                            |
                       2N2222 NPN
                            |
-                      Collector (C) ---[100 ohm]--- IR LED anode (+)
-                                                         |
-                                                    IR LED cathode (-) --- 3.3V or 5V
+                  Emitter (E) --- GND
                            |
-                      Emitter (E) --- GND
+                  Collector (C) --- KY-005 Signal pin (S)
+                                    KY-005 VCC (+) --- 5V
+                                    KY-005 GND (-) --- GND
 
 
-Pi GPIO 18 --- TSOP38238 OUT
-               TSOP38238 VCC --- 3.3V
-               TSOP38238 GND --- GND
+IR RECEIVER (KY-022 module):
+
+Pi GPIO 22 --- KY-022 Signal pin (S)
+               KY-022 VCC (+) --- 3.3V
+               KY-022 GND (-) --- GND
 ```
 
-Note: The ReSpeaker 2-Mic HAT uses GPIO pins for its own I2S audio. Check for conflicts with GPIO 17/18 for IR. If there's a conflict, IR can use alternative GPIO pins (configured in `/boot/config.txt` device tree overlay). This needs testing during setup.
+### Pi /boot/config.txt additions for IR
 
-## Where to Order (Amazon.de)
+```
+# IR receiver on GPIO 22
+dtoverlay=gpio-ir,gpio_pin=22
 
-Search terms for a single order:
-1. "ReSpeaker 2-Mic Pi HAT" or "Seeed Studio ReSpeaker"
-2. "TSOP38238 IR Empfaenger" or "IR Sender Empfaenger Modul Raspberry Pi"
-3. "Breadboard Jumper Kabel Set"
-4. "Mini USB Lautsprecher" or grab any speaker you have
+# IR transmitter on GPIO 24
+dtoverlay=gpio-ir-tx,gpio_pin=24
+```
+
+### Complete GPIO Usage Map
+
+| GPIO | Used By | Function |
+|------|---------|----------|
+| 2 | ReSpeaker HAT | I2C SDA |
+| 3 | ReSpeaker HAT | I2C SCL |
+| 17 | ReSpeaker HAT | Button |
+| 18 | ReSpeaker HAT | I2S CLK |
+| 19 | ReSpeaker HAT | I2S LRCLK |
+| 20 | ReSpeaker HAT | I2S ADC |
+| 21 | ReSpeaker HAT | I2S DAC |
+| 22 | **IR Receiver** | KY-022 signal out |
+| 24 | **IR Transmitter** | KY-005 via transistor |
+| 4, 5-16, 23, 25-27 | Free | Available for future use |
+
+## Future Hardware (already owned, not needed for MVP)
+
+| Item | Potential Use |
+|------|------|
+| Pi 3B+ | Second room satellite mic/speaker |
+| Display shield | Show assistant status, weather, current action |
+| Camera module | Gesture control, person detection, video calls |
