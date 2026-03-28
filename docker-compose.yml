@@ -1,0 +1,15 @@
+services:
+  clawdia:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    devices:
+      - /dev/lirc0:/dev/lirc0
+      - /dev/lirc1:/dev/lirc1
+      - /dev/snd:/dev/snd
+    volumes:
+      - ./ir-codes:/app/ir-codes
+      - ./models:/app/models
+      - /run/user/1000/pulse:/run/user/1000/pulse
+    environment:
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
