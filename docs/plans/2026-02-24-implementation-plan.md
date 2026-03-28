@@ -4,7 +4,7 @@
 
 **Goal:** Build a single-process Raspberry Pi voice assistant that listens for "Hey Clawdia", transcribes speech via cloud STT, processes intent via PydanticAI/OpenRouter, controls a TV via IR, and communicates via Telegram.
 
-**Architecture:** Monorepo, single Python process, asyncio event loop. All modules (brain, IR, telegram, voice) are imported directly - no inter-service HTTP. One Docker container for deployment on Pi 4B.
+**Architecture:** Monorepo, single Python process, asyncio event loop. All modules (brain, IR, telegram, voice) are imported directly - no inter-service HTTP. One Docker container for deployment on Pi 5 (8GB).
 
 **Tech Stack:** Python 3.12, PydanticAI (OpenRouter), openai (Whisper STT), python-telegram-bot, openwakeword, PyAudio, ir-ctl (subprocess), pydantic-settings, pytest, Docker.
 

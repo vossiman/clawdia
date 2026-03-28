@@ -40,7 +40,7 @@ Clawdia is an open-source Raspberry Pi voice assistant with IR TV remote control
                           +----------------+--------------------+
                                            |
                           +----------------+--------------------+
-                          |         RASPBERRY PI 4B              |
+                          |         RASPBERRY PI 5 (8GB)         |
                           |                                      |
   [Mic] --> openWakeWord --> Audio Capture --> Orchestrator       |
                           |                      |               |
