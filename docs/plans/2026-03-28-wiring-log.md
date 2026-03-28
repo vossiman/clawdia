@@ -69,9 +69,16 @@ rc rc2: GPIO IR Bit Banging Transmitter as gpio-ir-transmitter@18, lirc minor=0
 rc rc3: gpio_ir_recv registered at minor=1, raw IR receiver
 ```
 
+## ReSpeaker HAT — DROPPED
+
+The Keyestudio ReSpeaker 2-Mic HAT covers all 40 GPIO pins with no pass-through headers. IR transmitter (GPIO 24) and receiver (GPIO 22) are wired underneath — can't mount the HAT without losing them. Soldering a stacking header is not practical.
+
+**Decision:** Use USB audio instead. The ADELGO USB SoundBar speaker was already purchased — check if it has a built-in mic. If not, get a cheap USB mic. Docker config uses USB audio device paths instead of I2S /dev/snd.
+
 ## Next Steps
 
-1. Move setup near TV
+1. Plug in USB soundbar, check if it has a mic
+2. Move setup near TV
 2. Test receiver — point TV remote at KY-022 and run:
    ```bash
    ir-ctl -d /dev/lirc1 -r --one-shot
