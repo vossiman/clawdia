@@ -75,10 +75,37 @@ The Keyestudio ReSpeaker 2-Mic HAT covers all 40 GPIO pins with no pass-through 
 
 **Decision:** Use USB audio instead. The ADELGO USB SoundBar speaker was already purchased — check if it has a built-in mic. If not, get a cheap USB mic. Docker config uses USB audio device paths instead of I2S /dev/snd.
 
+## USB Speaker Verified (2026-03-28)
+
+- VOTNTUT EL 001 / ADELGO USB Soundbar detected as Card 3: UACDemoV1.0 (Jieli Technology)
+- Playback tested with `speaker-test` — working
+- No built-in microphone — separate USB mic ordered
+- Initial undervoltage warning resolved by switching to proper 5V/3A+ PSU
+
+## Telegram + Brain Verified (2026-03-28)
+
+End-to-end pipeline confirmed working:
+- Telegram bot receives messages and responds
+- Brain routes to OpenRouter → Claude Haiku 4.5 → structured response
+- Orchestrator correctly routes IR commands vs text responses
+- IR controller reports missing code files (correct behaviour pre-recording)
+- Error handling works (brain failures return friendly message)
+
+Test messages:
+- "so how is the weather in vienna?" → text response from LLM (working)
+- "turn off the TV" → routed to IR → "IR command 'power' not available. Record it first." (correct)
+
+## What Is NOT Yet Verified
+
+- IR receiver capturing remote signals (needs to be at the TV)
+- IR transmitter controlling the TV (needs to be at the TV)
+- Voice pipeline (USB conference mic on order)
+- Docker deployment (ran directly with Python so far)
+- Piper TTS output through USB speaker
+
 ## Next Steps
 
-1. Plug in USB soundbar, check if it has a mic
-2. Move setup near TV
+1. Move setup near TV
 2. Test receiver — point TV remote at KY-022 and run:
    ```bash
    ir-ctl -d /dev/lirc1 -r --one-shot
