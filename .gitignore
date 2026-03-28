@@ -1,16 +1,24 @@
 # Secrets / credentials
 pi-setup/custom.toml
 .env
-.env.*
+!.env.example
 
 # Python
 __pycache__/
 *.py[cod]
 *.egg-info/
+*.egg
 dist/
 build/
+.eggs/
 .venv/
 venv/
+.pytest_cache/
+.ruff_cache/
+
+# Clawdia runtime
+ir-codes/
+*.tflite
 
 # IDE
 .vscode/
