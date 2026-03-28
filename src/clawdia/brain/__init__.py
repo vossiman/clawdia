@@ -1,0 +1,16 @@
+from __future__ import annotations
+
+from clawdia.brain.agent import create_agent
+from clawdia.brain.models import ClawdiaResponse
+
+
+class Brain:
+    """High-level interface to the Clawdia intent engine."""
+
+    def __init__(self, model: str = "openrouter:anthropic/claude-3-haiku-20240307"):
+        self.agent = create_agent(model=model)
+
+    async def process(self, text: str) -> ClawdiaResponse:
+        """Process a text command and return a structured response."""
+        result = await self.agent.run(text)
+        return result.output
