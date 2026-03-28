@@ -1,0 +1,103 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+
+class IRController:
+    """Controls IR sending/receiving via ir-ctl subprocess."""
+
+    def __init__(self, device_send: str = "/dev/lirc0", codes_dir: str = "ir-codes"):
+        self.device_send = device_send
+        self.codes_dir = Path(codes_dir)
+        self.codes_dir.mkdir(parents=True, exist_ok=True)
+
+    def list_commands(self) -> list[str]:
+        """List all available IR command names."""
+        return sorted(p.stem for p in self.codes_dir.glob("*.txt"))
+
+    def has_command(self, command: str) -> bool:
+        """Check if an IR command code file exists."""
+        return (self.codes_dir / f"{command}.txt").is_file()
+
+    def get_code_path(self, command: str) -> Path | None:
+        """Get the path to an IR code file."""
+        path = self.codes_dir / f"{command}.txt"
+        return path if path.is_file() else None
+
+    async def send(self, command: str, repeat: int = 1) -> bool:
+        """Send an IR command via ir-ctl.
+
+        Returns True if successful, False otherwise.
+        """
+        code_path = self.get_code_path(command)
+        if code_path is None:
+            logger.warning("IR command '%s' not found in %s", command, self.codes_dir)
+            return False
+
+        for i in range(repeat):
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    "ir-ctl",
+                    "-d", self.device_send,
+                    f"--send={code_path}",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await process.communicate()
+
+                if process.returncode != 0:
+                    logger.error(
+                        "ir-ctl send failed (code %d): %s",
+                        process.returncode,
+                        stderr.decode().strip(),
+                    )
+                    return False
+
+                if repeat > 1 and i < repeat - 1:
+                    await asyncio.sleep(0.1)
+
+            except FileNotFoundError:
+                logger.error("ir-ctl not found. Install v4l-utils: sudo apt install v4l-utils")
+                return False
+
+        logger.info("IR command '%s' sent successfully (repeat=%d)", command, repeat)
+        return True
+
+    async def record(self, command: str, timeout: float = 10.0) -> bool:
+        """Record an IR code from the receiver.
+
+        Returns True if a code was captured, False on timeout/error.
+        """
+        code_path = self.codes_dir / f"{command}.txt"
+
+        try:
+            process = await asyncio.create_subprocess_exec(
+                "ir-ctl",
+                "-d", self.device_send.replace("lirc0", "lirc1"),
+                "-r", "--one-shot",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=timeout
+            )
+
+            if process.returncode == 0 and stdout:
+                code_path.write_bytes(stdout)
+                logger.info("IR code recorded: %s -> %s", command, code_path)
+                return True
+
+            logger.warning("IR recording returned no data for '%s'", command)
+            return False
+
+        except asyncio.TimeoutError:
+            process.kill()
+            logger.warning("IR recording timed out for '%s'", command)
+            return False
+        except FileNotFoundError:
+            logger.error("ir-ctl not found. Install v4l-utils.")
+            return False
