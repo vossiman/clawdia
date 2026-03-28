@@ -35,7 +35,7 @@ the IR commands will be sent in sequence.
 """
 
 
-def create_agent(model: str = "openrouter:anthropic/claude-haiku-4-5-20251001") -> Agent:
+def create_agent(model: str = "openrouter:anthropic/claude-haiku-4.5") -> Agent:
     """Create the Clawdia PydanticAI agent."""
     return Agent(
         model,
