@@ -1,7 +1,7 @@
 # Clawdia: Build vs. Buy — Honest Assessment
 
 **Date:** 2026-03-28
-**Status:** Decision pending
+**Status:** Decided — building custom stack (Option A with MCP-readiness for v2)
 
 Should we build Clawdia's agent core from scratch, adopt an existing framework, or assemble from proven components?
 

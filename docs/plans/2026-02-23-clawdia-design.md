@@ -1,7 +1,7 @@
 # Clawdia - Design Document
 
-**Date:** 2026-02-23
-**Status:** Approved
+**Date:** 2026-02-23 (updated 2026-03-28)
+**Status:** Approved — all 7 phases implemented, hardware wired
 **Author:** Gernot Greimler + Claude
 
 ## Overview

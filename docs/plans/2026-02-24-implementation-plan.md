@@ -2,6 +2,8 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+**Status:** All 7 phases implemented (2026-03-28). 21 tests passing. Hardware wired and verified. Next: record IR codes, configure API keys, deploy.
+
 **Goal:** Build a single-process Raspberry Pi voice assistant that listens for "Hey Clawdia", transcribes speech via cloud STT, processes intent via PydanticAI/OpenRouter, controls a TV via IR, and communicates via Telegram.
 
 **Architecture:** Monorepo, single Python process, asyncio event loop. All modules (brain, IR, telegram, voice) are imported directly - no inter-service HTTP. One Docker container for deployment on Pi 5 (8GB).
