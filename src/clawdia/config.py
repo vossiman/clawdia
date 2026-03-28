@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     # OpenRouter
     openrouter_api_key: str = ""
-    openrouter_model: str = "anthropic/claude-3-haiku-20240307"
+    openrouter_model: str = "anthropic/claude-haiku-4-5-20251001"
 
     # OpenAI (Whisper STT)
     openai_api_key: str = ""
