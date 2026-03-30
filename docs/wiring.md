@@ -38,7 +38,13 @@ The transistor switches the ground path: 5V → S → LED → GND(-) → Collect
 
 Boot config: `dtoverlay=gpio-ir-tx,gpio_pin=23`
 
-**Status:** Verified working (2026-03-30). TV and soundbar controlled at ~3-4m distance.
+**Status:** Verified working (2026-03-30). 3x KY-005 modules wired in parallel.
+Currently placed ~1m from TV — works for all commands including power off at this range.
+At 3m, only power ON works (TV in standby = clean IR reception). Power OFF and all
+other commands fail at 3m — plasma panel EM noise drowns out the signal.
+10 more KY-005 modules ordered (13 total should give ~4x signal strength).
+If 13 LEDs still insufficient at 3m, swap 1kΩ base resistor to 470Ω to support up to ~25 LEDs.
+See `docs/samsung-ir-codes.md` for the full code reference.
 
 ## Pi Header Layout (relevant pins)
 

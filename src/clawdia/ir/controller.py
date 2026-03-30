@@ -11,6 +11,45 @@ logger = logging.getLogger(__name__)
 class IRController:
     """Controls IR sending/receiving via ir-ctl subprocess."""
 
+    # Samsung IR protocol timing (microseconds)
+    _SAMSUNG_HEADER_MARK = 4500
+    _SAMSUNG_HEADER_SPACE = 4500
+    _SAMSUNG_BIT_MARK = 560
+    _SAMSUNG_ONE_SPACE = 1690
+    _SAMSUNG_ZERO_SPACE = 560
+
+    @staticmethod
+    def generate_samsung_code(hex_code: int) -> str:
+        """Convert a 32-bit Samsung IR hex code to ir-ctl raw pulse/space format.
+
+        Example: generate_samsung_code(0xE0E040BF) -> "+4500 -4500 +560 -1690 ..."
+        """
+        parts = [
+            f"+{IRController._SAMSUNG_HEADER_MARK}",
+            f"-{IRController._SAMSUNG_HEADER_SPACE}",
+        ]
+        for i in range(31, -1, -1):
+            bit = (hex_code >> i) & 1
+            parts.append(f"+{IRController._SAMSUNG_BIT_MARK}")
+            if bit:
+                parts.append(f"-{IRController._SAMSUNG_ONE_SPACE}")
+            else:
+                parts.append(f"-{IRController._SAMSUNG_ZERO_SPACE}")
+        # Trailing mark
+        parts.append(f"+{IRController._SAMSUNG_BIT_MARK}")
+        return " ".join(parts)
+
+    def generate_code_file(self, command: str, hex_code: int, description: str = "") -> Path:
+        """Generate an IR code file from a Samsung hex scancode and update metadata."""
+        raw = self.generate_samsung_code(hex_code)
+        path = self.codes_dir / f"{command}.txt"
+        path.write_text(raw + "\n")
+        if description:
+            self._meta[command] = description
+            self._save_meta()
+        logger.info("Generated IR code: %s (0x%08X) -> %s", command, hex_code, path)
+        return path
+
     def __init__(self, device_send: str = "/dev/lirc0", codes_dir: str = "ir-codes"):
         self.device_send = device_send
         self.codes_dir = Path(codes_dir)
