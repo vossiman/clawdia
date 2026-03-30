@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     audio_sample_rate: int = 16000
     audio_chunk_size: int = 1280
 
+    # Spotify
+    spotify_client_id: str = ""
+    spotify_client_secret: str = ""
+    spotify_redirect_uri: str = "http://localhost:8888/callback"
+    spotify_device_name: str = "clawdia"
+    spotify_cache_path: str = ".spotify_cache"
+
     # General
     debug: bool = False
 
