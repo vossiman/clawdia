@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 SYSTEM_PROMPT = """\
 You are Clawdia, a voice-controlled home assistant running on a Raspberry Pi.
 
-You can control devices via infrared commands, control music playback, and answer general questions.
+You can control devices via infrared commands, control music playback, control a Linux PC remotely, and answer general questions.
 
 ## Available IR Commands
 
@@ -23,14 +23,21 @@ You can control devices via infrared commands, control music playback, and answe
 
 {music_section}
 
+## PC Remote Control
+
+{pc_section}
+
 ## Rules
 
 1. If the user wants to control a device (TV, etc.), respond with action="ir" and the exact command name.
 2. If the user wants to play music, search for songs, control playback (pause, skip, volume, etc.), or manage playlists, respond with action="music" with the appropriate command.
-3. If the user asks a question or wants information, respond with action="respond" and your answer.
-4. Always include a brief, friendly message describing what you did or your answer.
-5. If no IR command matches what the user wants, respond with action="respond" and tell them.
-6. If you're unsure what the user wants, respond with action="respond" and ask for clarification.
+3. If the user wants to control the Linux PC (open apps, browse websites, interact with desktop, run commands), respond with action="pc".
+   - Use command_type="shell" for simple commands (opening URLs, launching apps, adjusting volume, terminal commands).
+   - Use command_type="computer_use" when the task requires seeing and interacting with the screen (clicking through menus, navigating web apps, filling forms).
+4. If the user is correcting or providing feedback about a previous action (e.g. "wrong URL", "not that browser"), respond with action="learn" to store the correction.
+5. If the user asks a question or wants information, respond with action="respond" and your answer.
+6. Always include a brief, friendly message describing what you did or your answer.
+7. If you're unsure what the user wants, respond with action="respond" and ask for clarification.
 
 ### Music Commands Reference
 
@@ -45,13 +52,33 @@ You can control devices via infrared commands, control music playback, and answe
 - search: Search for tracks (include query field)
 - now_playing: Show what's currently playing
 - list_playlists: List available playlists
+
+### Learn Action
+
+When the user corrects a previous action, extract the fact and store it:
+- section: which part of the knowledge base to update ("pc", "services", "preferences", "corrections")
+- key: the specific item (e.g. "browser", "emby")
+- value: the corrected information (string or dict)
 """
 
 MUSIC_ENABLED = "Music playback is available via Spotify. Use action=\"music\" for any music-related requests."
 MUSIC_DISABLED = "Music playback is not currently configured."
 
+PC_ENABLED = """\
+PC remote control is available. Use action="pc" for any PC-related requests.
 
-def build_system_prompt(ir: IRController, music: MusicController | None = None) -> str:
+### Known facts about the PC:
+
+{pc_knowledge}"""
+
+PC_DISABLED = "PC remote control is not configured."
+
+
+def build_system_prompt(
+    ir: IRController,
+    music: MusicController | None = None,
+    pc_knowledge: str = "",
+) -> str:
     commands = ir.list_commands_with_descriptions()
     if commands:
         lines = [f"- {name}: {desc}" if desc else f"- {name}" for name, desc in commands]
@@ -61,21 +88,32 @@ def build_system_prompt(ir: IRController, music: MusicController | None = None) 
 
     music_section = MUSIC_ENABLED if music else MUSIC_DISABLED
 
-    return SYSTEM_PROMPT.format(ir_commands=ir_commands, music_section=music_section)
+    if pc_knowledge:
+        pc_section = PC_ENABLED.format(pc_knowledge=pc_knowledge)
+    else:
+        pc_section = PC_DISABLED
+
+    return SYSTEM_PROMPT.format(
+        ir_commands=ir_commands,
+        music_section=music_section,
+        pc_section=pc_section,
+    )
 
 
 def create_agent(
     model: str = "openrouter:anthropic/claude-haiku-4.5",
     ir: IRController | None = None,
     music: MusicController | None = None,
+    pc_knowledge: str = "",
 ) -> Agent:
     """Create the Clawdia PydanticAI agent."""
     if ir:
-        prompt = build_system_prompt(ir=ir, music=music)
+        prompt = build_system_prompt(ir=ir, music=music, pc_knowledge=pc_knowledge)
     else:
         prompt = SYSTEM_PROMPT.format(
             ir_commands="No IR commands recorded yet.",
             music_section=MUSIC_ENABLED if music else MUSIC_DISABLED,
+            pc_section=PC_ENABLED.format(pc_knowledge=pc_knowledge) if pc_knowledge else PC_DISABLED,
         )
     return Agent(
         model,

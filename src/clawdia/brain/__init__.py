@@ -18,15 +18,22 @@ class Brain:
         model: str = "openrouter:anthropic/claude-haiku-4.5",
         ir: IRController | None = None,
         music: MusicController | None = None,
+        pc_knowledge: str = "",
     ):
         self._model = model
         self._ir = ir
         self._music = music
-        self.agent = create_agent(model=model, ir=ir, music=music)
+        self._pc_knowledge = pc_knowledge
+        self.agent = create_agent(model=model, ir=ir, music=music, pc_knowledge=pc_knowledge)
 
-    def reload_commands(self) -> None:
-        """Rebuild the agent with current IR commands."""
-        self.agent = create_agent(model=self._model, ir=self._ir, music=self._music)
+    def reload_commands(self, pc_knowledge: str | None = None) -> None:
+        """Rebuild the agent with current IR commands and knowledge."""
+        if pc_knowledge is not None:
+            self._pc_knowledge = pc_knowledge
+        self.agent = create_agent(
+            model=self._model, ir=self._ir, music=self._music,
+            pc_knowledge=self._pc_knowledge,
+        )
 
     async def process(self, text: str) -> ClawdiaResponse:
         """Process a text command and return a structured response."""
