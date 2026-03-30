@@ -49,7 +49,25 @@ async def run() -> None:
     else:
         logger.info("Spotify not configured (missing client credentials)")
 
-    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music)
+    # Optional: PC Remote Control (needs SSH config)
+    pc = None
+    knowledge = None
+    pc_knowledge = ""
+    if settings.pc_enabled:
+        from clawdia.pc import PCController, KnowledgeBase
+        pc = PCController(
+            ssh_host=settings.pc_ssh_host,
+            ssh_user=settings.pc_ssh_user,
+            ssh_key_path=settings.pc_ssh_key_path,
+            agent_path=settings.pc_agent_path,
+        )
+        knowledge = KnowledgeBase("pc_knowledge.yaml")
+        pc_knowledge = knowledge.to_prompt_context()
+        logger.info("PC remote control enabled (host: %s)", settings.pc_ssh_host)
+    else:
+        logger.info("PC remote control not configured (missing SSH host/user)")
+
+    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, pc_knowledge=pc_knowledge)
 
     telegram = ClawdiaTelegramBot(
         token=settings.telegram_bot_token,
@@ -74,6 +92,8 @@ async def run() -> None:
         telegram=telegram,
         stt=stt,
         music=music,
+        pc=pc,
+        knowledge=knowledge,
     )
 
     # Start services

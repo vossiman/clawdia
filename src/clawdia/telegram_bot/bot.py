@@ -62,6 +62,7 @@ class ClawdiaTelegramBot:
         app.add_handler(CommandHandler("playlist", self._handle_playlist))
         app.add_handler(CommandHandler("queue", self._handle_queue))
         app.add_handler(CommandHandler("playlists", self._handle_playlists))
+        app.add_handler(CommandHandler("pc", self._handle_pc_status))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
 
@@ -71,7 +72,8 @@ class ClawdiaTelegramBot:
             "Hi! I'm Clawdia, your home assistant.\n\n"
             "Send me a message and I'll process it.\n"
             "Use /ir to see available IR commands.\n"
-            "Use /play <query> to play music."
+            "Use /play <query> to play music.\n"
+            "Use /pc for PC remote control info."
         )
 
     async def _handle_ir_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -220,6 +222,18 @@ class ClawdiaTelegramBot:
             return
         lines = [f"• {pl['name']}" for pl in playlists]
         await update.message.reply_text("Your playlists:\n" + "\n".join(lines))
+
+    async def _handle_pc_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /pc command - show PC remote control status."""
+        await update.message.reply_text(
+            "PC Remote Control\n\n"
+            "Just send me a message describing what you want to do on your PC.\n"
+            "Examples:\n"
+            "• 'Open Emby and play Stranger Things'\n"
+            "• 'Set the volume to 50%'\n"
+            "• 'Open Firefox'\n"
+            "• 'Take a screenshot'"
+        )
 
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle text messages - send to brain for processing."""
