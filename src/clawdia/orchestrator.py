@@ -8,6 +8,8 @@ if TYPE_CHECKING:
     from clawdia.brain.models import MusicAction
     from clawdia.ir import IRController
     from clawdia.music import MusicController
+    from clawdia.pc.controller import PCController
+    from clawdia.pc.knowledge import KnowledgeBase
     from clawdia.telegram_bot import ClawdiaTelegramBot
     from clawdia.voice.stt import SpeechToText
 
@@ -41,12 +43,16 @@ class Orchestrator:
         telegram: ClawdiaTelegramBot,
         stt: SpeechToText | None = None,
         music: MusicController | None = None,
+        pc: PCController | None = None,
+        knowledge: KnowledgeBase | None = None,
     ):
         self.brain = brain
         self.ir = ir
         self.telegram = telegram
         self.stt = stt
         self.music = music
+        self.pc = pc
+        self.knowledge = knowledge
 
     async def _handle_music(self, action: MusicAction) -> str:
         """Dispatch a music action to the controller."""
@@ -93,6 +99,37 @@ class Orchestrator:
         elif response.action == "music" and response.music:
             result = await self._handle_music(response.music)
             await self.telegram.notify(result)
+
+        elif response.action == "pc" and response.pc:
+            if not self.pc:
+                await self.telegram.notify("PC remote control is not configured.")
+                return
+
+            if response.pc.command_type == "shell" and response.pc.shell_command:
+                result = await self.pc.run_shell(response.pc.shell_command)
+            elif response.pc.command_type == "computer_use" and response.pc.goal:
+                knowledge_ctx = self.knowledge.to_prompt_context() if self.knowledge else ""
+                result = await self.pc.run_computer_use(response.pc.goal, knowledge_ctx)
+            else:
+                await self.telegram.notify("Invalid PC command.")
+                return
+
+            if result.success:
+                await self.telegram.notify(response.message)
+            else:
+                await self.telegram.notify(f"PC command failed: {result.output}")
+
+        elif response.action == "learn" and response.learn:
+            if self.knowledge:
+                learn = response.learn
+                if learn.section == "preferences":
+                    self.knowledge.add_preference(str(learn.value))
+                elif learn.section == "corrections":
+                    self.knowledge.add_correction(learn.key, str(learn.value))
+                else:
+                    self.knowledge.update(learn.section, learn.key, learn.value)
+                self.brain.reload_commands(pc_knowledge=self.knowledge.to_prompt_context())
+            await self.telegram.notify(response.message)
 
         elif response.action == "respond":
             await self.telegram.notify(response.message)
