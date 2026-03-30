@@ -1,0 +1,13 @@
+{
+  "sound_power_toggle": "Toggle soundbar power on/off",
+  "tv_power_on": "Turn TV on",
+  "tv_power_off": "Turn TV off",
+  "tv_hdmi1": "Switch TV to HDMI 1",
+  "tv_hdmi2": "Switch TV to HDMI 2",
+  "tv_hdmi3": "Switch TV to HDMI 3",
+  "tv_hdmi4": "Switch TV to HDMI 4",
+  "tv_source": "Cycle TV input source",
+  "sound_vol_up": "Surround system volume up",
+  "sound_vol_down": "Surround system volume down",
+  "sound_mute": "Surround system mute/unmute"
+}

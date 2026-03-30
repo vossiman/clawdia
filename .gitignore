@@ -17,7 +17,6 @@ venv/
 .ruff_cache/
 
 # Clawdia runtime
-ir-codes/
 *.tflite
 
 # IDE
