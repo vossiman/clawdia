@@ -23,6 +23,9 @@ venv/
 .vscode/
 .idea/
 
+# Worktrees
+.worktrees/
+
 # OS
 .DS_Store
 Thumbs.db
