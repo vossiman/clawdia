@@ -10,6 +10,10 @@ services:
     volumes:
       - ./ir-codes:/app/ir-codes
       - ./models:/app/models
+      - spotify-cache:/app/.spotify_cache
       - /run/user/1000/pulse:/run/user/1000/pulse
     environment:
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
+
+volumes:
+  spotify-cache:

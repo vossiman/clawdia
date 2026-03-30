@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import signal
-import sys
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -12,6 +10,7 @@ load_dotenv()
 from clawdia.config import settings
 from clawdia.brain import Brain
 from clawdia.ir import IRController
+from clawdia.music import MusicController
 from clawdia.orchestrator import Orchestrator
 from clawdia.telegram_bot import ClawdiaTelegramBot
 
@@ -36,13 +35,28 @@ async def run() -> None:
         codes_dir=settings.ir_codes_dir,
     )
 
-    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir)
+    # Optional: Spotify music (needs client credentials)
+    music = None
+    if settings.spotify_client_id and settings.spotify_client_secret:
+        music = MusicController(
+            client_id=settings.spotify_client_id,
+            client_secret=settings.spotify_client_secret,
+            redirect_uri=settings.spotify_redirect_uri,
+            device_name=settings.spotify_device_name,
+            cache_path=settings.spotify_cache_path,
+        )
+        logger.info("Spotify music controller initialized (device: %s)", settings.spotify_device_name)
+    else:
+        logger.info("Spotify not configured (missing client credentials)")
+
+    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music)
 
     telegram = ClawdiaTelegramBot(
         token=settings.telegram_bot_token,
         chat_id=settings.telegram_chat_id,
         brain=brain,
         ir=ir,
+        music=music,
     )
 
     # Optional: STT (needs OpenAI API key)
@@ -59,6 +73,7 @@ async def run() -> None:
         ir=ir,
         telegram=telegram,
         stt=stt,
+        music=music,
     )
 
     # Start services
