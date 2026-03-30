@@ -1,6 +1,5 @@
 import pytest
-import base64
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from clawdia.pc_agent.agent import ComputerUseAgent, AgentResult
 

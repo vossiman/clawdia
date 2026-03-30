@@ -33,11 +33,7 @@ async def test_agent_text_response(agent):
         assert "15 degrees" in result.output.message
 
 
-from clawdia.brain.agent import build_system_prompt
-
-
 def test_system_prompt_includes_music_section():
-    from unittest.mock import MagicMock
     ir = MagicMock()
     ir.list_commands_with_descriptions.return_value = []
     prompt = build_system_prompt(ir=ir, music=None)

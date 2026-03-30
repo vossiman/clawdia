@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import AsyncMock, patch
 
 from clawdia.pc_agent.actions import (
@@ -6,7 +5,6 @@ from clawdia.pc_agent.actions import (
     click,
     type_text,
     press_key,
-    ActionResult,
 )
 
 
