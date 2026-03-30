@@ -16,6 +16,7 @@ from telegram.ext import (
 if TYPE_CHECKING:
     from clawdia.brain import Brain
     from clawdia.ir import IRController
+    from clawdia.music import MusicController
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +24,19 @@ logger = logging.getLogger(__name__)
 class ClawdiaTelegramBot:
     """Telegram bot for Clawdia - receives commands, sends notifications."""
 
-    def __init__(self, token: str, chat_id: int, brain: Brain, ir: IRController | None = None):
+    def __init__(
+        self,
+        token: str,
+        chat_id: int,
+        brain: Brain,
+        ir: IRController | None = None,
+        music: MusicController | None = None,
+    ):
         self.token = token
         self.chat_id = chat_id
         self.brain = brain
         self.ir = ir
+        self.music = music
         self._bot = telegram.Bot(token=token)
         self._app: Application | None = None
 
@@ -44,6 +53,15 @@ class ClawdiaTelegramBot:
         app.add_handler(CommandHandler("start", self._handle_start))
         app.add_handler(CommandHandler("ir", self._handle_ir_list))
         app.add_handler(CommandHandler("record", self._handle_record))
+        app.add_handler(CommandHandler("play", self._handle_play))
+        app.add_handler(CommandHandler("pause", self._handle_pause))
+        app.add_handler(CommandHandler("skip", self._handle_skip))
+        app.add_handler(CommandHandler("prev", self._handle_prev))
+        app.add_handler(CommandHandler("np", self._handle_np))
+        app.add_handler(CommandHandler("vol", self._handle_vol))
+        app.add_handler(CommandHandler("playlist", self._handle_playlist))
+        app.add_handler(CommandHandler("queue", self._handle_queue))
+        app.add_handler(CommandHandler("playlists", self._handle_playlists))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
         return app
 
@@ -52,7 +70,8 @@ class ClawdiaTelegramBot:
         await update.message.reply_text(
             "Hi! I'm Clawdia, your home assistant.\n\n"
             "Send me a message and I'll process it.\n"
-            "Use /ir to see available IR commands."
+            "Use /ir to see available IR commands.\n"
+            "Use /play <query> to play music."
         )
 
     async def _handle_ir_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -106,6 +125,102 @@ class ClawdiaTelegramBot:
         else:
             await update.message.reply_text(f"Failed to record '{command}'. Timed out or no signal received.")
 
+    async def _handle_play(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /play [query] - play music or search and play a track."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        if context.args:
+            query = " ".join(context.args)
+            result = await self.music.play_query(query)
+        else:
+            result = await self.music.play()
+        await update.message.reply_text(result)
+
+    async def _handle_pause(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /pause - pause playback."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        result = await self.music.pause()
+        await update.message.reply_text(result)
+
+    async def _handle_skip(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /skip - skip to next track."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        result = await self.music.skip()
+        await update.message.reply_text(result)
+
+    async def _handle_prev(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /prev - go to previous track."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        result = await self.music.previous()
+        await update.message.reply_text(result)
+
+    async def _handle_np(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /np - show now playing."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        result = await self.music.now_playing()
+        await update.message.reply_text(result)
+
+    async def _handle_vol(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /vol <0-100> - set volume."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        if not context.args:
+            await update.message.reply_text("Usage: /vol <0-100>\nExample: /vol 75")
+            return
+        try:
+            level = int(context.args[0])
+        except ValueError:
+            await update.message.reply_text("Usage: /vol <0-100>\nExample: /vol 75")
+            return
+        result = await self.music.volume(level)
+        await update.message.reply_text(result)
+
+    async def _handle_playlist(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /playlist <name> - play a playlist by name."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        if not context.args:
+            await update.message.reply_text("Usage: /playlist <name>\nExample: /playlist chill")
+            return
+        name = " ".join(context.args)
+        result = await self.music.play_playlist(name)
+        await update.message.reply_text(result)
+
+    async def _handle_queue(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /queue <query> - add a track to the queue."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        if not context.args:
+            await update.message.reply_text("Usage: /queue <query>\nExample: /queue jazz classics")
+            return
+        query = " ".join(context.args)
+        result = await self.music.queue_track(query)
+        await update.message.reply_text(result)
+
+    async def _handle_playlists(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /playlists - list available playlists."""
+        if not self.music:
+            await update.message.reply_text("Music playback is not configured.")
+            return
+        playlists = await self.music.list_playlists()
+        if not playlists:
+            await update.message.reply_text("No playlists found.")
+            return
+        lines = [f"• {pl['name']}" for pl in playlists]
+        await update.message.reply_text("Your playlists:\n" + "\n".join(lines))
+
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle text messages - send to brain for processing."""
         if update.effective_chat.id != self.chat_id:
@@ -137,6 +252,29 @@ class ClawdiaTelegramBot:
                 await update.message.reply_text(f"[IR: {response.ir.command} x{response.ir.repeat}] {response.message}")
             else:
                 await update.message.reply_text(f"[IR: {response.ir.command}] Failed to send.")
+
+        elif response.action == "music" and response.music:
+            if not self.music:
+                await update.message.reply_text("Music playback is not configured.")
+                return
+            from clawdia.orchestrator import MUSIC_DISPATCH
+            handler = MUSIC_DISPATCH.get(response.music.command)
+            if not handler:
+                await update.message.reply_text(f"Unknown music command: {response.music.command}")
+                return
+            result = await handler(self.music, response.music)
+            if isinstance(result, list):
+                if not result:
+                    await update.message.reply_text("No results found.")
+                else:
+                    lines = [
+                        f"• {r['name']} — {r.get('artists', '')}" if "artists" in r else f"• {r['name']}"
+                        for r in result
+                    ]
+                    await update.message.reply_text("\n".join(lines))
+            else:
+                await update.message.reply_text(result)
+
         else:
             await update.message.reply_text(response.message)
 
