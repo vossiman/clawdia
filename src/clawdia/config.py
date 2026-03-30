@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     spotify_device_name: str = "clawdia"
     spotify_cache_path: str = ".spotify_cache"
 
+    # PC Remote Control
+    pc_ssh_host: str = ""
+    pc_ssh_user: str = ""
+    pc_ssh_key_path: str = "~/.ssh/id_ed25519"
+    pc_agent_path: str = "~/clawdia-agent"
+
+    @property
+    def pc_enabled(self) -> bool:
+        return bool(self.pc_ssh_host and self.pc_ssh_user)
+
     # General
     debug: bool = False
 
