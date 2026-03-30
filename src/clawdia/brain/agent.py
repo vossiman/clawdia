@@ -11,18 +11,9 @@ You can control a TV via infrared commands and answer general questions.
 
 ## Available IR Commands
 
-TV control:
-- power: Turn TV on/off
-- vol_up: Volume up
-- vol_down: Volume down
-- mute: Toggle mute
-- ch_up: Channel up
-- ch_down: Channel down
-- input_source: Switch input source
-- num_0 through num_9: Number keys
-- menu_up, menu_down, menu_left, menu_right: Menu navigation
-- menu_ok: Confirm/select
-- menu_back: Go back
+- power: Toggle TV power on/off
+- power_toggle: Toggle TV power on/off (alias)
+- sound_power_toggle: Toggle soundbar power on/off
 
 ## Rules
 

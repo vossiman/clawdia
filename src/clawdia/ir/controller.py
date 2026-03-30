@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from pathlib import Path
 
@@ -14,10 +15,27 @@ class IRController:
         self.device_send = device_send
         self.codes_dir = Path(codes_dir)
         self.codes_dir.mkdir(parents=True, exist_ok=True)
+        self._meta_path = self.codes_dir / "commands.json"
+        self._meta: dict[str, str] = self._load_meta()
+
+    def _load_meta(self) -> dict[str, str]:
+        if self._meta_path.is_file():
+            return json.loads(self._meta_path.read_text())
+        return {}
+
+    def _save_meta(self) -> None:
+        self._meta_path.write_text(json.dumps(self._meta, indent=2) + "\n")
 
     def list_commands(self) -> list[str]:
         """List all available IR command names."""
         return sorted(p.stem for p in self.codes_dir.glob("*.txt"))
+
+    def list_commands_with_descriptions(self) -> list[tuple[str, str]]:
+        """List commands with their descriptions."""
+        return [
+            (name, self._meta.get(name, ""))
+            for name in self.list_commands()
+        ]
 
     def has_command(self, command: str) -> bool:
         """Check if an IR command code file exists."""
@@ -27,6 +45,11 @@ class IRController:
         """Get the path to an IR code file."""
         path = self.codes_dir / f"{command}.txt"
         return path if path.is_file() else None
+
+    def set_description(self, command: str, description: str) -> None:
+        """Set the description for a command."""
+        self._meta[command] = description
+        self._save_meta()
 
     async def send(self, command: str, repeat: int = 1) -> bool:
         """Send an IR command via ir-ctl.

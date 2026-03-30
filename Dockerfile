@@ -10,7 +10,7 @@ WORKDIR /app
 
 # Install Python deps
 COPY pyproject.toml .
-RUN pip install --no-cache-dir ".[voice]"
+RUN pip install --no-cache-dir "."
 
 # Copy source
 COPY src/ src/

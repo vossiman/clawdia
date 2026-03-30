@@ -24,6 +24,10 @@ async def run() -> None:
         level=logging.DEBUG if settings.debug else logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
     )
+    # Prevent bot token from leaking in debug logs
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("telegram").setLevel(logging.WARNING)
     logger.info("Starting Clawdia...")
 
     # Initialize components
@@ -38,6 +42,7 @@ async def run() -> None:
         token=settings.telegram_bot_token,
         chat_id=settings.telegram_chat_id,
         brain=brain,
+        ir=ir,
     )
 
     # Optional: STT (needs OpenAI API key)
