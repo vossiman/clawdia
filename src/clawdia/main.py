@@ -31,12 +31,12 @@ async def run() -> None:
     logger.info("Starting Clawdia...")
 
     # Initialize components
-    brain = Brain(model=f"openrouter:{settings.openrouter_model}")
-
     ir = IRController(
         device_send=settings.ir_device_send,
         codes_dir=settings.ir_codes_dir,
     )
+
+    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir)
 
     telegram = ClawdiaTelegramBot(
         token=settings.telegram_bot_token,
@@ -60,19 +60,6 @@ async def run() -> None:
         telegram=telegram,
         stt=stt,
     )
-
-    # Wire up Telegram message handler to orchestrator
-    async def enhanced_message_handler(update, context):
-        """Enhanced handler that routes brain responses through orchestrator."""
-        if update.effective_chat.id != telegram.chat_id:
-            await update.message.reply_text("Sorry, I only respond to my owner.")
-            return
-
-        text = update.message.text
-        logger.info("Telegram command: %s", text)
-        await orchestrator.handle_text_command(text)
-
-    telegram._handle_message = enhanced_message_handler
 
     # Start services
     await telegram.start()

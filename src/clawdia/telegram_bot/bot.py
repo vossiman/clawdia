@@ -67,7 +67,7 @@ class ClawdiaTelegramBot:
             await update.message.reply_text("No IR commands recorded yet. Use /record <name> to record one.")
 
     async def _handle_record(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /record <name> - record an IR code from the receiver."""
+        """Handle /record <name> <description> - record an IR code from the receiver."""
         if update.effective_chat.id != self.chat_id:
             await update.message.reply_text("Sorry, I only respond to my owner.")
             return
@@ -77,10 +77,14 @@ class ClawdiaTelegramBot:
             return
 
         if not context.args:
-            await update.message.reply_text("Usage: /record <name>\nExample: /record power_toggle")
+            await update.message.reply_text(
+                "Usage: /record <name> <description>\n"
+                "Example: /record power Toggle TV power on/off"
+            )
             return
 
         command = context.args[0].lower().strip()
+        description = " ".join(context.args[1:]).strip() if len(context.args) > 1 else ""
 
         if self.ir.has_command(command):
             await update.message.reply_text(
@@ -95,7 +99,10 @@ class ClawdiaTelegramBot:
 
         success = await self.ir.record(command)
         if success:
-            await update.message.reply_text(f"Recorded '{command}' successfully!")
+            if description:
+                self.ir.set_description(command, description)
+            self.brain.reload_commands()
+            await update.message.reply_text(f"Recorded '{command}': {description}" if description else f"Recorded '{command}'")
         else:
             await update.message.reply_text(f"Failed to record '{command}'. Timed out or no signal received.")
 
