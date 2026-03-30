@@ -111,7 +111,7 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        results = await self._run(self._sp.search, q=query, type="track", limit=1)
+        results = await self._run(self._sp.search, q=query, type="track", limit=5)
         tracks = results.get("tracks", {}).get("items", [])
         if not tracks:
             return f"No results found for '{query}'."
@@ -146,7 +146,7 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        results = await self._run(self._sp.search, q=query, type="track", limit=1)
+        results = await self._run(self._sp.search, q=query, type="track", limit=5)
         tracks = results.get("tracks", {}).get("items", [])
         if not tracks:
             return f"No results found for '{query}'."
