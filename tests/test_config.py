@@ -35,6 +35,6 @@ def test_spotify_settings():
     )
     assert s.spotify_client_id == "test-id"
     assert s.spotify_client_secret == "test-secret"
-    assert s.spotify_redirect_uri == "http://localhost:8888/callback"
+    assert s.spotify_redirect_uri == "http://127.0.0.1:8888/callback"
     assert s.spotify_device_name == "test-device"
     assert s.spotify_cache_path == ".spotify_cache"
