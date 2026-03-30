@@ -51,6 +51,7 @@ class ClawdiaTelegramBot:
         """Build the Telegram application with handlers."""
         app = Application.builder().token(self.token).build()
         app.add_handler(CommandHandler("start", self._handle_start))
+        app.add_handler(CommandHandler("help", self._handle_help))
         app.add_handler(CommandHandler("ir", self._handle_ir_list))
         app.add_handler(CommandHandler("record", self._handle_record))
         app.add_handler(CommandHandler("play", self._handle_play))
@@ -72,6 +73,27 @@ class ClawdiaTelegramBot:
             "Send me a message and I'll process it.\n"
             "Use /ir to see available IR commands.\n"
             "Use /play <query> to play music."
+        )
+
+    async def _handle_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /help command."""
+        await update.message.reply_text(
+            "Available commands:\n\n"
+            "General:\n"
+            "  /help - Show this message\n"
+            "  /ir - List available IR commands\n"
+            "  /record <name> <desc> - Record an IR code\n\n"
+            "Music:\n"
+            "  /play <query> - Play a song (or resume)\n"
+            "  /pause - Pause playback\n"
+            "  /skip - Next track\n"
+            "  /prev - Previous track\n"
+            "  /np - Now playing\n"
+            "  /vol <0-100> - Set volume\n"
+            "  /playlist <name> - Play a playlist\n"
+            "  /queue <query> - Add to queue\n"
+            "  /playlists - List playlists\n\n"
+            "Or just send a message and I'll figure it out!"
         )
 
     async def _handle_ir_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
