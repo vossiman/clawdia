@@ -27,25 +27,29 @@ class ClawdiaTelegramBot:
     def __init__(
         self,
         token: str,
-        chat_id: int,
+        chat_ids: set[int],
         brain: Brain,
         ir: IRController | None = None,
         music: MusicController | None = None,
     ):
         self.token = token
-        self.chat_id = chat_id
+        self.chat_ids = chat_ids
         self.brain = brain
         self.ir = ir
         self.music = music
         self._bot = telegram.Bot(token=token)
         self._app: Application | None = None
 
+    def _is_allowed(self, chat_id: int) -> bool:
+        return chat_id in self.chat_ids
+
     async def notify(self, text: str) -> None:
-        """Send a notification message to the configured chat."""
-        try:
-            await self._bot.send_message(chat_id=self.chat_id, text=text)
-        except Exception:
-            logger.exception("Failed to send Telegram notification")
+        """Send a notification message to all allowed chats."""
+        for chat_id in self.chat_ids:
+            try:
+                await self._bot.send_message(chat_id=chat_id, text=text)
+            except Exception:
+                logger.exception("Failed to send Telegram notification to %s", chat_id)
 
     def _build_app(self) -> Application:
         """Build the Telegram application with handlers."""
@@ -109,8 +113,8 @@ class ClawdiaTelegramBot:
 
     async def _handle_record(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /record <name> <description> - record an IR code from the receiver."""
-        if update.effective_chat.id != self.chat_id:
-            await update.message.reply_text("Sorry, I only respond to my owner.")
+        if not self._is_allowed(update.effective_chat.id):
+            await update.message.reply_text("Sorry, you're not authorized.")
             return
 
         if not self.ir:
@@ -245,8 +249,8 @@ class ClawdiaTelegramBot:
 
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle text messages - send to brain for processing."""
-        if update.effective_chat.id != self.chat_id:
-            await update.message.reply_text("Sorry, I only respond to my owner.")
+        if not self._is_allowed(update.effective_chat.id):
+            await update.message.reply_text("Sorry, you're not authorized.")
             return
 
         text = update.message.text

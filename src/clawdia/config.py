@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str = ""
-    telegram_chat_id: int = 0
+    telegram_chat_ids: str = ""  # Comma-separated list of allowed chat IDs
 
     # IR
     ir_device_send: str = "/dev/lirc0"

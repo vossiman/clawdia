@@ -9,7 +9,7 @@ from clawdia.telegram_bot.bot import ClawdiaTelegramBot
 def bot():
     b = ClawdiaTelegramBot(
         token="test-token",
-        chat_id=12345,
+        chat_ids={12345},
         brain=AsyncMock(),
         ir=MagicMock(),
         music=AsyncMock(),
@@ -115,7 +115,7 @@ async def test_playlists_command(bot):
 async def test_music_command_no_controller():
     bot = ClawdiaTelegramBot(
         token="test-token",
-        chat_id=12345,
+        chat_ids={12345},
         brain=AsyncMock(),
     )
     update, context = _make_update("/play jazz", args=["jazz"])

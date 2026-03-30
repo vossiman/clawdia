@@ -6,17 +6,17 @@ from clawdia.telegram_bot.bot import ClawdiaTelegramBot
 def test_bot_initialization():
     bot = ClawdiaTelegramBot(
         token="test-token",
-        chat_id=12345,
+        chat_ids={12345},
         brain=AsyncMock(),
     )
-    assert bot.chat_id == 12345
+    assert 12345 in bot.chat_ids
     assert bot.brain is not None
 
 
 async def test_notify():
     bot = ClawdiaTelegramBot(
         token="test-token",
-        chat_id=12345,
+        chat_ids={12345},
         brain=AsyncMock(),
     )
     with patch.object(bot, "_bot") as mock_bot:

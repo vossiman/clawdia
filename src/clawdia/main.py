@@ -51,9 +51,12 @@ async def run() -> None:
 
     brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music)
 
+    chat_ids = {int(x.strip()) for x in settings.telegram_chat_ids.split(",") if x.strip()}
+    logger.info("Allowed Telegram chat IDs: %s", chat_ids)
+
     telegram = ClawdiaTelegramBot(
         token=settings.telegram_bot_token,
-        chat_id=settings.telegram_chat_id,
+        chat_ids=chat_ids,
         brain=brain,
         ir=ir,
         music=music,
