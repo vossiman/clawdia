@@ -53,6 +53,8 @@ class PCController:
                 process.communicate(), timeout=timeout
             )
         except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
             logger.error("SSH command timed out after %.0fs", timeout)
             return PCResult(success=False, output="Command timed out")
         except Exception as e:

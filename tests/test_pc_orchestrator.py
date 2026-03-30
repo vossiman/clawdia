@@ -8,7 +8,9 @@ from clawdia.pc.controller import PCResult
 
 @pytest.fixture
 def mock_brain():
-    return AsyncMock()
+    brain = MagicMock()
+    brain.process = AsyncMock()
+    return brain
 
 
 @pytest.fixture

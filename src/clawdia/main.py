@@ -75,6 +75,8 @@ async def run() -> None:
         brain=brain,
         ir=ir,
         music=music,
+        pc=pc,
+        knowledge=knowledge,
     )
 
     # Optional: STT (needs OpenAI API key)

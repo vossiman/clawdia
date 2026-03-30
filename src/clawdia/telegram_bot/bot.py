@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from clawdia.brain import Brain
     from clawdia.ir import IRController
     from clawdia.music import MusicController
+    from clawdia.pc.controller import PCController
+    from clawdia.pc.knowledge import KnowledgeBase
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +33,16 @@ class ClawdiaTelegramBot:
         brain: Brain,
         ir: IRController | None = None,
         music: MusicController | None = None,
+        pc: PCController | None = None,
+        knowledge: KnowledgeBase | None = None,
     ):
         self.token = token
         self.chat_id = chat_id
         self.brain = brain
         self.ir = ir
         self.music = music
+        self.pc = pc
+        self.knowledge = knowledge
         self._bot = telegram.Bot(token=token)
         self._app: Application | None = None
 
@@ -288,6 +294,33 @@ class ClawdiaTelegramBot:
                     await update.message.reply_text("\n".join(lines))
             else:
                 await update.message.reply_text(result)
+
+        elif response.action == "pc" and response.pc and self.pc:
+            if response.pc.command_type == "shell" and response.pc.shell_command:
+                result = await self.pc.run_shell(response.pc.shell_command)
+            elif response.pc.command_type == "computer_use" and response.pc.goal:
+                knowledge_ctx = self.knowledge.to_prompt_context() if self.knowledge else ""
+                result = await self.pc.run_computer_use(response.pc.goal, knowledge_ctx)
+            else:
+                await update.message.reply_text("Invalid PC command.")
+                return
+
+            if result.success:
+                await update.message.reply_text(f"[PC] {response.message}")
+            else:
+                await update.message.reply_text(f"[PC] Failed: {result.output}")
+
+        elif response.action == "learn" and response.learn:
+            if self.knowledge:
+                learn = response.learn
+                if learn.section == "preferences":
+                    self.knowledge.add_preference(str(learn.value))
+                elif learn.section == "corrections":
+                    self.knowledge.add_correction(learn.key, str(learn.value))
+                else:
+                    self.knowledge.update(learn.section, learn.key, learn.value)
+                self.brain.reload_commands(pc_knowledge=self.knowledge.to_prompt_context())
+            await update.message.reply_text(response.message)
 
         else:
             await update.message.reply_text(response.message)
