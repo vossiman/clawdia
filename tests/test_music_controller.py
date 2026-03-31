@@ -153,3 +153,34 @@ async def test_play_resume(controller, mock_spotify):
     result = await controller.play()
     mock_spotify.start_playback.assert_called_once_with(device_id="dev123")
     assert "resum" in result.lower()
+
+
+def _device_list_inactive(name="clawdia"):
+    return {"devices": [{"id": "dev123", "name": name, "is_active": False}]}
+
+
+async def test_play_retries_when_device_not_active(controller, mock_spotify):
+    """When start_playback succeeds but device stays inactive, retry and report failure."""
+    mock_spotify.devices.side_effect = [
+        _device_list(),           # _get_device_id
+        _device_list_inactive(),  # verify attempt 1
+        _device_list_inactive(),  # retry: verify attempt 2
+        _device_list_inactive(),  # retry: verify attempt 1
+        _device_list_inactive(),  # retry: verify attempt 2
+    ]
+    result = await controller.play(uri="spotify:track:123")
+    assert "did not start" in result.lower()
+    assert mock_spotify.start_playback.call_count == 2
+
+
+async def test_play_succeeds_on_retry(controller, mock_spotify):
+    """When first play attempt fails but retry succeeds."""
+    mock_spotify.devices.side_effect = [
+        _device_list(),           # _get_device_id
+        _device_list_inactive(),  # verify attempt 1
+        _device_list_inactive(),  # verify attempt 2
+        _device_list(),           # retry: verify attempt 1 — now active
+    ]
+    result = await controller.play(uri="spotify:track:123")
+    assert "playing" in result.lower()
+    assert mock_spotify.start_playback.call_count == 2

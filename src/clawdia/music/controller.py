@@ -49,17 +49,41 @@ class MusicController:
                 return device["id"]
         return None
 
+    async def _verify_playback_started(self, device_id: str, max_retries: int = 2) -> bool:
+        """Check if the device became active after a play command. Returns True if playing."""
+        for attempt in range(max_retries):
+            await asyncio.sleep(1)
+            devices = await self._run(self._sp.devices)
+            for device in devices.get("devices", []):
+                if device["id"] == device_id and device.get("is_active"):
+                    return True
+            logger.warning(
+                "Playback not active on %s after attempt %d/%d",
+                self._device_name, attempt + 1, max_retries,
+            )
+        return False
+
+    async def _start_with_retry(self, device_id: str, max_retries: int = 2, **play_kwargs) -> bool:
+        """Send start_playback and verify it took effect, retrying if needed."""
+        for attempt in range(1, max_retries + 1):
+            await self._run(self._sp.start_playback, device_id=device_id, **play_kwargs)
+            if await self._verify_playback_started(device_id):
+                return True
+            logger.warning(
+                "Retrying start_playback on %s (attempt %d/%d)",
+                self._device_name, attempt, max_retries,
+            )
+        return False
+
     async def play(self, uri: str | None = None) -> str:
         """Resume playback or play a specific URI."""
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        if uri:
-            await self._run(self._sp.start_playback, device_id=device_id, uris=[uri])
-            return f"Playing on {self._device_name}."
-        else:
-            await self._run(self._sp.start_playback, device_id=device_id)
-            return "Resuming playback."
+        play_kwargs = {"uris": [uri]} if uri else {}
+        if await self._start_with_retry(device_id, **play_kwargs):
+            return f"Playing on {self._device_name}." if uri else "Resuming playback."
+        return f"Playback command sent but {self._device_name} did not start. The device may need to be restarted."
 
     async def pause(self) -> str:
         """Pause playback."""
@@ -118,8 +142,9 @@ class MusicController:
         track = tracks[0]
         name = track["name"]
         artist = track["artists"][0]["name"]
-        await self._run(self._sp.start_playback, device_id=device_id, uris=[track["uri"]])
-        return f"Now playing: {name} by {artist}"
+        if await self._start_with_retry(device_id, uris=[track["uri"]]):
+            return f"Now playing: {name} by {artist}"
+        return f"Found '{name} by {artist}' but {self._device_name} did not start. The device may need to be restarted."
 
     async def play_playlist(self, name: str) -> str:
         """Find a playlist by name and play it."""
@@ -134,12 +159,9 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        await self._run(
-            self._sp.start_playback,
-            device_id=device_id,
-            context_uri=matched["uri"],
-        )
-        return f"Now playing playlist: {matched['name']}"
+        if await self._start_with_retry(device_id, context_uri=matched["uri"]):
+            return f"Now playing playlist: {matched['name']}"
+        return f"Found playlist '{matched['name']}' but {self._device_name} did not start. The device may need to be restarted."
 
     async def queue_track(self, query: str) -> str:
         """Search for a track and add it to the queue."""
