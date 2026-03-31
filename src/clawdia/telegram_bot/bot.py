@@ -326,7 +326,7 @@ class ClawdiaTelegramBot:
         logger.info("Telegram message received: %s", text)
 
         try:
-            response = await self.brain.process(text)
+            response = await self.brain.process(text, context_id=str(update.effective_chat.id))
         except Exception:
             logger.exception("Error processing message")
             await update.message.reply_text("Sorry, something went wrong.")
