@@ -42,7 +42,7 @@ class MusicController:
         return await asyncio.to_thread(partial(func, *args, **kwargs))
 
     async def _get_device_id(self) -> str | None:
-        """Find the device ID for our spotifyd instance."""
+        """Find the device ID for the librespot instance."""
         devices = await self._run(self._sp.devices)
         for device in devices.get("devices", []):
             if device["name"] == self._device_name:
@@ -111,7 +111,7 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        results = await self._run(self._sp.search, q=query, type="track", limit=1)
+        results = await self._run(self._sp.search, q=query, type="track", limit=5)
         tracks = results.get("tracks", {}).get("items", [])
         if not tracks:
             return f"No results found for '{query}'."
@@ -146,7 +146,7 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        results = await self._run(self._sp.search, q=query, type="track", limit=1)
+        results = await self._run(self._sp.search, q=query, type="track", limit=5)
         tracks = results.get("tracks", {}).get("items", [])
         if not tracks:
             return f"No results found for '{query}'."

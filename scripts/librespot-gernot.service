@@ -1,0 +1,12 @@
+[Unit]
+Description=Librespot Spotify Connect (Gernot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/home/vossi/.cargo/bin/librespot -n clawdia-gernot -b 160 --device-type speaker -c /tmp/librespot-cache-gernot
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

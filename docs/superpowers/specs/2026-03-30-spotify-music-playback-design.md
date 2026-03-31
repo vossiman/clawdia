@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-30
 **Status:** Approved
-**Scope:** Add Spotify playback to Clawdia via spotifyd + Spotify Web API
+**Scope:** Add Spotify playback to Clawdia via librespot + Spotify Web API
 
 ## Overview
 
@@ -10,13 +10,13 @@ Enable Clawdia to play music through a USB speaker attached to the Raspberry Pi.
 
 ## Architecture
 
-**spotifyd** runs on the Pi host as a systemd user service. It handles Spotify Connect and audio output to the USB speaker via ALSA.
+**librespot 0.8.0** runs on the Pi host as a systemd user service. It handles Spotify Connect and audio output to the USB speaker via rodio/ALSA. (Originally designed for spotifyd, but switched to librespot due to spotifyd 0.4.x OAuth bugs — see `docs/pi-audio-setup.md` for details.)
 
-**Clawdia** (in Docker) controls playback through the **Spotify Web API** using the `spotipy` Python library. No direct communication between Clawdia and spotifyd — the Spotify cloud is the middleman.
+**Clawdia** (in Docker) controls playback through the **Spotify Web API** using the `spotipy` Python library. No direct communication between Clawdia and librespot — the Spotify cloud is the middleman.
 
 ```
 Telegram/Voice → Brain (PydanticAI) → action="music" → MusicController
-    → spotipy → Spotify Web API → Spotify cloud → spotifyd → USB speaker
+    → spotipy → Spotify Web API → Spotify cloud → librespot → USB speaker
 ```
 
 Spotify Connect also works independently — the user can cast from their phone's Spotify app to the "clawdia" device at any time.

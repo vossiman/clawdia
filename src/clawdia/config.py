@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str = ""
-    telegram_chat_id: int = 0
+    telegram_chat_ids: str = ""  # Comma-separated list of allowed chat IDs
 
     # IR
     ir_device_send: str = "/dev/lirc0"
@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     spotify_redirect_uri: str = "http://127.0.0.1:8888/callback"
     spotify_device_name: str = "clawdia"
     spotify_cache_path: str = ".spotify_cache"
+    spotify_users: str = ""  # Multi-user: chat_id:cache[:client_id:secret],...
 
     # PC Remote Control
     pc_ssh_host: str = ""

@@ -12,6 +12,7 @@ from clawdia.brain import Brain
 from clawdia.ir import IRController
 from clawdia.music import MusicController
 from clawdia.orchestrator import Orchestrator
+from clawdia.playback import PlaybackCoordinator
 from clawdia.telegram_bot import ClawdiaTelegramBot
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,31 @@ async def run() -> None:
 
     # Optional: Spotify music (needs client credentials)
     music = None
-    if settings.spotify_client_id and settings.spotify_client_secret:
+    music_controllers: dict[int, MusicController] = {}
+    if settings.spotify_users:
+        # Format: chat_id:cache_path:device_name[:client_id:client_secret],...
+        for entry in settings.spotify_users.split(","):
+            parts = entry.strip().split(":")
+            if len(parts) < 3:
+                logger.warning("Invalid SPOTIFY_USERS entry (need chat_id:cache:device): %s", entry)
+                continue
+            chat_id = int(parts[0])
+            cache_path = parts[1]
+            device_name = parts[2]
+            client_id = parts[3] if len(parts) > 3 else settings.spotify_client_id
+            client_secret = parts[4] if len(parts) > 4 else settings.spotify_client_secret
+            mc = MusicController(
+                client_id=client_id,
+                client_secret=client_secret,
+                redirect_uri=settings.spotify_redirect_uri,
+                device_name=device_name,
+                cache_path=cache_path,
+            )
+            music_controllers[chat_id] = mc
+            logger.info("Spotify controller for chat %d (device: %s, cache: %s)", chat_id, device_name, cache_path)
+        if music_controllers:
+            music = next(iter(music_controllers.values()))
+    elif settings.spotify_client_id and settings.spotify_client_secret:
         music = MusicController(
             client_id=settings.spotify_client_id,
             client_secret=settings.spotify_client_secret,
@@ -67,16 +92,28 @@ async def run() -> None:
     else:
         logger.info("PC remote control not configured (missing SSH host/user)")
 
-    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, pc_knowledge=pc_knowledge)
+    coordinator = PlaybackCoordinator()
+    for chat_id, mc in music_controllers.items():
+        coordinator.register_service(f"spotify:{chat_id}", stop=mc.pause)
+        logger.info("Registered playback service spotify:%d", chat_id)
+    if music and not music_controllers:
+        coordinator.register_service("spotify:default", stop=music.pause)
+
+    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, pc_knowledge=pc_knowledge, coordinator=coordinator)
+
+    chat_ids = {int(x.strip()) for x in settings.telegram_chat_ids.split(",") if x.strip()}
+    logger.info("Allowed Telegram chat IDs: %s", chat_ids)
 
     telegram = ClawdiaTelegramBot(
         token=settings.telegram_bot_token,
-        chat_id=settings.telegram_chat_id,
+        chat_ids=chat_ids,
         brain=brain,
         ir=ir,
         music=music,
         pc=pc,
         knowledge=knowledge,
+        music_controllers=music_controllers or None,
+        coordinator=coordinator,
     )
 
     # Optional: STT (needs OpenAI API key)
@@ -96,6 +133,7 @@ async def run() -> None:
         music=music,
         pc=pc,
         knowledge=knowledge,
+        coordinator=coordinator,
     )
 
     # Start services

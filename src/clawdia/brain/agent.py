@@ -27,6 +27,10 @@ You can control devices via infrared commands, control music playback, control a
 
 {pc_section}
 
+## Current Playback State
+
+{playback_state}
+
 ## Rules
 
 1. If the user wants to control a device (TV, etc.), respond with action="ir" and the exact command name.
@@ -78,6 +82,7 @@ def build_system_prompt(
     ir: IRController,
     music: MusicController | None = None,
     pc_knowledge: str = "",
+    playback_state: str | None = None,
 ) -> str:
     commands = ir.list_commands_with_descriptions()
     if commands:
@@ -87,6 +92,7 @@ def build_system_prompt(
         ir_commands = "No IR commands recorded yet."
 
     music_section = MUSIC_ENABLED if music else MUSIC_DISABLED
+    ps = playback_state if playback_state else ""
 
     if pc_knowledge:
         pc_section = PC_ENABLED.format(pc_knowledge=pc_knowledge)
@@ -97,6 +103,7 @@ def build_system_prompt(
         ir_commands=ir_commands,
         music_section=music_section,
         pc_section=pc_section,
+        playback_state=ps,
     )
 
 
@@ -105,15 +112,17 @@ def create_agent(
     ir: IRController | None = None,
     music: MusicController | None = None,
     pc_knowledge: str = "",
+    playback_state: str | None = None,
 ) -> Agent:
     """Create the Clawdia PydanticAI agent."""
     if ir:
-        prompt = build_system_prompt(ir=ir, music=music, pc_knowledge=pc_knowledge)
+        prompt = build_system_prompt(ir=ir, music=music, pc_knowledge=pc_knowledge, playback_state=playback_state)
     else:
         prompt = SYSTEM_PROMPT.format(
             ir_commands="No IR commands recorded yet.",
             music_section=MUSIC_ENABLED if music else MUSIC_DISABLED,
             pc_section=PC_ENABLED.format(pc_knowledge=pc_knowledge) if pc_knowledge else PC_DISABLED,
+            playback_state=playback_state or "",
         )
     return Agent(
         model,

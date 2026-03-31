@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from clawdia.music import MusicController
     from clawdia.pc.controller import PCController
     from clawdia.pc.knowledge import KnowledgeBase
+    from clawdia.playback import PlaybackCoordinator
     from clawdia.telegram_bot import ClawdiaTelegramBot
     from clawdia.voice.stt import SpeechToText
 
@@ -45,6 +46,7 @@ class Orchestrator:
         music: MusicController | None = None,
         pc: PCController | None = None,
         knowledge: KnowledgeBase | None = None,
+        coordinator: PlaybackCoordinator | None = None,
     ):
         self.brain = brain
         self.ir = ir
@@ -53,6 +55,7 @@ class Orchestrator:
         self.music = music
         self.pc = pc
         self.knowledge = knowledge
+        self.coordinator = coordinator
 
     async def _handle_music(self, action: MusicAction) -> str:
         """Dispatch a music action to the controller."""
@@ -61,7 +64,20 @@ class Orchestrator:
         handler = MUSIC_DISPATCH.get(action.command)
         if not handler:
             return f"Unknown music command: {action.command}"
-        result = await handler(self.music, action)
+        is_playback_cmd = action.command in ("play", "play_query", "play_playlist")
+        if self.coordinator and is_playback_cmd:
+            result = await self.coordinator.play(
+                service="spotify:default",
+                source="voice",
+                user_chat_id=None,
+                callback=lambda: handler(self.music, action),
+                description=action.query or "music",
+            )
+        elif self.coordinator and action.command == "pause":
+            result = await handler(self.music, action)
+            await self.coordinator.stop("spotify:default")
+        else:
+            result = await handler(self.music, action)
         if isinstance(result, list):
             if not result:
                 return "No results found."
