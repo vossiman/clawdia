@@ -169,3 +169,83 @@ async def test_music_fallback_to_default():
     update, context = _make_update("/pause", chat_id=999)
     await bot._handle_pause(update, context)
     default_music.pause.assert_called_once()
+
+
+async def test_play_routes_through_coordinator():
+    music = AsyncMock()
+    music.play_query.return_value = "Now playing: Song by Artist"
+
+    from clawdia.playback import PlaybackCoordinator
+    coordinator = PlaybackCoordinator()
+    coordinator.register_service("spotify:12345", stop=music.pause)
+
+    bot = ClawdiaTelegramBot(
+        token="test-token",
+        chat_ids={12345},
+        brain=AsyncMock(),
+        music=music,
+        music_controllers={12345: music},
+        coordinator=coordinator,
+    )
+
+    update, context = _make_update("/play jazz", chat_id=12345, args=["jazz"])
+    await bot._handle_play(update, context)
+    music.play_query.assert_called_once_with("jazz")
+    assert coordinator.state is not None
+    assert coordinator.state.service == "spotify:12345"
+
+
+async def test_pause_clears_coordinator_state():
+    music = AsyncMock()
+    music.play_query.return_value = "Now playing: Song"
+    music.pause.return_value = "Paused."
+
+    from clawdia.playback import PlaybackCoordinator
+    coordinator = PlaybackCoordinator()
+    coordinator.register_service("spotify:12345", stop=music.pause)
+
+    bot = ClawdiaTelegramBot(
+        token="test-token",
+        chat_ids={12345},
+        brain=AsyncMock(),
+        music=music,
+        music_controllers={12345: music},
+        coordinator=coordinator,
+    )
+
+    update_play, ctx_play = _make_update("/play jazz", chat_id=12345, args=["jazz"])
+    await bot._handle_play(update_play, ctx_play)
+    assert coordinator.state is not None
+
+    update_pause, ctx_pause = _make_update("/pause", chat_id=12345)
+    await bot._handle_pause(update_pause, ctx_pause)
+    assert coordinator.state is None
+
+
+async def test_play_stops_other_users_playback():
+    music_a = AsyncMock()
+    music_b = AsyncMock()
+    music_a.play_query.return_value = "Playing A"
+    music_b.play_query.return_value = "Playing B"
+
+    from clawdia.playback import PlaybackCoordinator
+    coordinator = PlaybackCoordinator()
+    coordinator.register_service("spotify:111", stop=music_a.pause)
+    coordinator.register_service("spotify:222", stop=music_b.pause)
+
+    bot = ClawdiaTelegramBot(
+        token="test-token",
+        chat_ids={111, 222},
+        brain=AsyncMock(),
+        music_controllers={111: music_a, 222: music_b},
+        coordinator=coordinator,
+    )
+
+    update_a, ctx_a = _make_update("/play jazz", chat_id=111, args=["jazz"])
+    await bot._handle_play(update_a, ctx_a)
+    assert coordinator.state.service == "spotify:111"
+
+    update_b, ctx_b = _make_update("/play rock", chat_id=222, args=["rock"])
+    await bot._handle_play(update_b, ctx_b)
+    music_a.pause.assert_called_once()
+    assert coordinator.state.service == "spotify:222"

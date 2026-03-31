@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from clawdia.brain import Brain
     from clawdia.ir import IRController
     from clawdia.music import MusicController
+    from clawdia.playback import PlaybackCoordinator
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class ClawdiaTelegramBot:
         ir: IRController | None = None,
         music: MusicController | None = None,
         music_controllers: dict[int, MusicController] | None = None,
+        coordinator: PlaybackCoordinator | None = None,
     ):
         self.token = token
         self.chat_ids = chat_ids
@@ -39,6 +41,7 @@ class ClawdiaTelegramBot:
         self.ir = ir
         self.music = music
         self.music_controllers = music_controllers or {}
+        self.coordinator = coordinator
         self._bot = telegram.Bot(token=token)
         self._app: Application | None = None
 
@@ -163,11 +166,30 @@ class ClawdiaTelegramBot:
         if not music:
             await update.message.reply_text("Music playback is not configured.")
             return
+        chat_id = update.effective_chat.id
         if context.args:
             query = " ".join(context.args)
-            result = await music.play_query(query)
+            if self.coordinator:
+                result = await self.coordinator.play(
+                    service=f"spotify:{chat_id}",
+                    source="telegram",
+                    user_chat_id=chat_id,
+                    callback=lambda: music.play_query(query),
+                    description=query,
+                )
+            else:
+                result = await music.play_query(query)
         else:
-            result = await music.play()
+            if self.coordinator:
+                result = await self.coordinator.play(
+                    service=f"spotify:{chat_id}",
+                    source="telegram",
+                    user_chat_id=chat_id,
+                    callback=lambda: music.play(),
+                    description="Resumed playback",
+                )
+            else:
+                result = await music.play()
         await update.message.reply_text(result)
 
     async def _handle_pause(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -177,6 +199,8 @@ class ClawdiaTelegramBot:
             await update.message.reply_text("Music playback is not configured.")
             return
         result = await music.pause()
+        if self.coordinator:
+            await self.coordinator.stop(f"spotify:{update.effective_chat.id}")
         await update.message.reply_text(result)
 
     async def _handle_skip(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -233,7 +257,17 @@ class ClawdiaTelegramBot:
             await update.message.reply_text("Usage: /playlist <name>\nExample: /playlist chill")
             return
         name = " ".join(context.args)
-        result = await music.play_playlist(name)
+        chat_id = update.effective_chat.id
+        if self.coordinator:
+            result = await self.coordinator.play(
+                service=f"spotify:{chat_id}",
+                source="telegram",
+                user_chat_id=chat_id,
+                callback=lambda: music.play_playlist(name),
+                description=f"playlist: {name}",
+            )
+        else:
+            result = await music.play_playlist(name)
         await update.message.reply_text(result)
 
     async def _handle_queue(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -304,7 +338,21 @@ class ClawdiaTelegramBot:
             if not handler:
                 await update.message.reply_text(f"Unknown music command: {response.music.command}")
                 return
-            result = await handler(music, response.music)
+            chat_id = update.effective_chat.id
+            is_playback_cmd = response.music.command in ("play", "play_query", "play_playlist")
+            if self.coordinator and is_playback_cmd:
+                result = await self.coordinator.play(
+                    service=f"spotify:{chat_id}",
+                    source="telegram",
+                    user_chat_id=chat_id,
+                    callback=lambda: handler(music, response.music),
+                    description=response.music.query or "music",
+                )
+            elif self.coordinator and response.music.command == "pause":
+                result = await handler(music, response.music)
+                await self.coordinator.stop(f"spotify:{chat_id}")
+            else:
+                result = await handler(music, response.music)
             if isinstance(result, list):
                 if not result:
                     await update.message.reply_text("No results found.")
