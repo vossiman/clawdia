@@ -20,8 +20,10 @@ class MusicController:
         redirect_uri: str,
         device_name: str,
         cache_path: str,
+        device_controller: MusicController | None = None,
     ):
         self._device_name = device_name
+        self._device_controller = device_controller
         auth_manager = SpotifyOAuth(
             client_id=client_id,
             client_secret=client_secret,
@@ -42,7 +44,13 @@ class MusicController:
         return await asyncio.to_thread(partial(func, *args, **kwargs))
 
     async def _get_device_id(self) -> str | None:
-        """Find the device ID for our spotifyd instance."""
+        """Find the device ID for the librespot instance.
+
+        If a device_controller is set, delegates to it — the librespot device
+        is only visible to the account that librespot authenticated as.
+        """
+        if self._device_controller is not None:
+            return await self._device_controller._get_device_id()
         devices = await self._run(self._sp.devices)
         for device in devices.get("devices", []):
             if device["name"] == self._device_name:

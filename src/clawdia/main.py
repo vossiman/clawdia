@@ -39,6 +39,8 @@ async def run() -> None:
     music = None
     music_controllers: dict[int, MusicController] = {}
     if settings.spotify_users:
+        # First user owns the librespot device — others delegate device lookup to them
+        primary: MusicController | None = None
         for entry in settings.spotify_users.split(","):
             parts = entry.strip().split(":")
             if len(parts) < 2:
@@ -54,7 +56,10 @@ async def run() -> None:
                 redirect_uri=settings.spotify_redirect_uri,
                 device_name=settings.spotify_device_name,
                 cache_path=cache_path,
+                device_controller=primary,
             )
+            if primary is None:
+                primary = mc
             music_controllers[chat_id] = mc
             logger.info("Spotify controller for chat %d (cache: %s)", chat_id, cache_path)
         if music_controllers:

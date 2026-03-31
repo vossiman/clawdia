@@ -181,7 +181,7 @@ The script prints an auth URL — open it in a browser, authorize, paste the red
 
 **3. Configure `.env`**
 
-Map each Telegram chat ID to its cache file:
+Map each Telegram chat ID to its cache file. **The first entry must be the account that librespot is authenticated as** — this account owns the Pi speaker device, and other users' playback commands are routed through it:
 ```
 SPOTIFY_USERS=4380413:.spotify_cache,180506269:.spotify_cache_oxana
 ```
@@ -209,6 +209,7 @@ git pull && docker compose up -d --build
 ### How it works
 
 - `main.py` parses `SPOTIFY_USERS` and creates one `MusicController` per user
+- The first user's controller owns the librespot device — other controllers delegate device lookup to it (Spotify Connect devices are only visible to the account librespot authenticated as)
 - The Telegram bot routes music commands to the correct controller based on `update.effective_chat.id`
 - If a chat ID isn't in `SPOTIFY_USERS`, it falls back to the default single-user controller
 - The `Brain` and `Orchestrator` get a single default controller (they just need to know music is available)
