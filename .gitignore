@@ -2,7 +2,7 @@
 pi-setup/custom.toml
 .env
 !.env.example
-.spotify_cache
+.spotify_cache*
 
 # Python
 __pycache__/

@@ -11,6 +11,7 @@ services:
       - ./ir-codes:/app/ir-codes
       - ./models:/app/models
       - ./.spotify_cache:/app/.spotify_cache
+      - ./.spotify_cache_oxana:/app/.spotify_cache_oxana
       - /run/user/1000/pulse:/run/user/1000/pulse
     environment:
       - PULSE_SERVER=unix:/run/user/1000/pulse/native

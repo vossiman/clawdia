@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     spotify_redirect_uri: str = "http://127.0.0.1:8888/callback"
     spotify_device_name: str = "clawdia"
     spotify_cache_path: str = ".spotify_cache"
+    spotify_users: str = ""  # Multi-user: chat_id:cache[:client_id:secret],...
 
     # General
     debug: bool = False

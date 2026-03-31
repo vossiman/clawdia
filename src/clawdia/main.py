@@ -37,7 +37,29 @@ async def run() -> None:
 
     # Optional: Spotify music (needs client credentials)
     music = None
-    if settings.spotify_client_id and settings.spotify_client_secret:
+    music_controllers: dict[int, MusicController] = {}
+    if settings.spotify_users:
+        for entry in settings.spotify_users.split(","):
+            parts = entry.strip().split(":")
+            if len(parts) < 2:
+                logger.warning("Invalid SPOTIFY_USERS entry: %s", entry)
+                continue
+            chat_id = int(parts[0])
+            cache_path = parts[1]
+            client_id = parts[2] if len(parts) > 2 else settings.spotify_client_id
+            client_secret = parts[3] if len(parts) > 3 else settings.spotify_client_secret
+            mc = MusicController(
+                client_id=client_id,
+                client_secret=client_secret,
+                redirect_uri=settings.spotify_redirect_uri,
+                device_name=settings.spotify_device_name,
+                cache_path=cache_path,
+            )
+            music_controllers[chat_id] = mc
+            logger.info("Spotify controller for chat %d (cache: %s)", chat_id, cache_path)
+        if music_controllers:
+            music = next(iter(music_controllers.values()))
+    elif settings.spotify_client_id and settings.spotify_client_secret:
         music = MusicController(
             client_id=settings.spotify_client_id,
             client_secret=settings.spotify_client_secret,
@@ -60,6 +82,7 @@ async def run() -> None:
         brain=brain,
         ir=ir,
         music=music,
+        music_controllers=music_controllers or None,
     )
 
     # Optional: STT (needs OpenAI API key)
