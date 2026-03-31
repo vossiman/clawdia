@@ -167,6 +167,7 @@ Each household member has their own Spotify account linked to their Telegram cha
 - Each user has their own librespot instance (`clawdia-gernot`, `clawdia-oxana`) — Spotify Connect devices are account-scoped, so each account needs its own device
 - `main.py` parses `SPOTIFY_USERS` and creates one `MusicController` per user, each pointing to their own device
 - The Telegram bot routes music commands to the correct controller based on `update.effective_chat.id`
+- A **PlaybackCoordinator** ensures only one audio source plays at a time — when someone starts playing, the previous playback is automatically stopped (see [Playback Coordinator](#playback-coordinator))
 - If a chat ID isn't in `SPOTIFY_USERS`, it falls back to the default single-user controller
 - If `SPOTIFY_USERS` is empty, everything works as before (single-user mode)
 
@@ -196,6 +197,46 @@ SPOTIFY_USERS=4380413:.spotify_cache:clawdia-gernot:id1:secret1,180506269:.spoti
 6. Add their `chat_id:cache_path:device_name` to `SPOTIFY_USERS` in `.env`
 7. Add a volume mount for their cache file in `docker-compose.yml`
 8. Restart: `docker compose up -d --build`
+
+## Playback Coordinator
+
+The Pi has one speaker in a shared living room. Only one audio source should play at a time. The `PlaybackCoordinator` enforces this globally — when anyone starts playing anything, whatever was previously playing is automatically stopped.
+
+### How it works
+
+- All playback commands (slash commands like `/play`, `/playlist`, and natural language like "play some jazz") go through the coordinator
+- The coordinator tracks a global `PlaybackState`: who is playing, what service, what content, and since when
+- When a new play command comes in from a different service, the coordinator calls the previous service's stop callback before starting the new one
+- If the stop callback fails (e.g. Spotify API is down), the new playback proceeds anyway
+- Read-only commands (`/np`, `/vol`, `/playlists`) bypass the coordinator
+
+### Brain awareness
+
+The brain's system prompt includes the current playback state, e.g.:
+```
+Currently playing: No Surprises by Radiohead (spotify:4380413, since 3 min ago)
+```
+This lets the LLM reason about playback: "pausing Oxana's music to play your request", or answer "what's playing?" without an API call.
+
+### Architecture
+
+```
+src/clawdia/playback/
+├── __init__.py          # exports PlaybackCoordinator
+└── coordinator.py       # PlaybackCoordinator + PlaybackState
+```
+
+- `PlaybackCoordinator` is created in `main.py` at startup
+- Each music controller registers via `coordinator.register_service("spotify:<chat_id>", stop=mc.pause)`
+- The coordinator is passed to `Brain` (for prompt injection), `ClawdiaTelegramBot` (for command routing), and `Orchestrator` (for voice command routing)
+- Future services (web radio, Emby) register the same way with their own stop callbacks
+
+### Adding a new audio service
+
+1. Create the service controller (e.g. `WebRadioController`) with a `pause()` or `stop()` method
+2. Register it: `coordinator.register_service("webradio", stop=radio.stop)`
+3. Route play commands through `coordinator.play(service="webradio", ...)`
+4. The coordinator handles stopping whatever was previously playing
 
 ## Troubleshooting
 
