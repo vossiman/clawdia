@@ -68,7 +68,18 @@ class PCController:
             return PCResult(success=False, output=error)
 
     async def run_shell(self, command: str) -> PCResult:
-        """Run a shell command on the remote PC."""
+        """Run a shell command on the remote PC.
+
+        GUI apps are automatically backgrounded so SSH doesn't block waiting
+        for them to exit.
+        """
+        # Background GUI app launches so SSH returns immediately
+        gui_apps = {"firefox", "chromium", "google-chrome", "emby", "vlc", "mpv",
+                    "nautilus", "thunar", "nemo", "xdg-open", "libreoffice",
+                    "gimp", "inkscape", "code", "gedit", "xterm", "evince"}
+        first_word = command.strip().split()[0].split("/")[-1] if command.strip() else ""
+        if first_word in gui_apps and "nohup" not in command and "&" not in command:
+            command = f"nohup {command} >/dev/null 2>&1 & sleep 0.5"
         return await self._run_ssh(command)
 
     async def run_computer_use(self, goal: str, knowledge_context: str) -> PCResult:

@@ -51,7 +51,7 @@ def test_system_prompt_with_music_enabled():
 def test_system_prompt_includes_pc_section_when_enabled():
     ir = MagicMock()
     ir.list_commands_with_descriptions.return_value = []
-    prompt = build_system_prompt(ir=ir, pc_knowledge="browser: firefox\nservices:\n  emby:\n    url: http://emby:8096")
+    prompt = build_system_prompt(ir=ir, pc_enabled=True, pc_knowledge="browser: firefox\nservices:\n  emby:\n    url: http://emby:8096")
     assert "PC Remote Control" in prompt
     assert "firefox" in prompt
     assert "emby" in prompt
@@ -67,6 +67,6 @@ def test_system_prompt_pc_disabled_when_no_knowledge():
 def test_system_prompt_includes_learn_action():
     ir = MagicMock()
     ir.list_commands_with_descriptions.return_value = []
-    prompt = build_system_prompt(ir=ir, pc_knowledge="browser: firefox")
+    prompt = build_system_prompt(ir=ir, pc_enabled=True, pc_knowledge="browser: firefox")
     assert "learn" in prompt
     assert "correction" in prompt.lower()

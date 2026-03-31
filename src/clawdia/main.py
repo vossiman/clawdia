@@ -99,7 +99,7 @@ async def run() -> None:
     if music and not music_controllers:
         coordinator.register_service("spotify:default", stop=music.pause)
 
-    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, pc_knowledge=pc_knowledge, coordinator=coordinator)
+    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, pc_enabled=pc is not None, pc_knowledge=pc_knowledge, coordinator=coordinator)
 
     chat_ids = {int(x.strip()) for x in settings.telegram_chat_ids.split(",") if x.strip()}
     logger.info("Allowed Telegram chat IDs: %s", chat_ids)

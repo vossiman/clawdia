@@ -19,15 +19,17 @@ class Brain:
         model: str = "openrouter:anthropic/claude-haiku-4.5",
         ir: IRController | None = None,
         music: MusicController | None = None,
+        pc_enabled: bool = False,
         pc_knowledge: str = "",
         coordinator: PlaybackCoordinator | None = None,
     ):
         self._model = model
         self._ir = ir
         self._music = music
+        self._pc_enabled = pc_enabled
         self._pc_knowledge = pc_knowledge
         self._coordinator = coordinator
-        self.agent = create_agent(model=model, ir=ir, music=music, pc_knowledge=pc_knowledge)
+        self.agent = create_agent(model=model, ir=ir, music=music, pc_enabled=pc_enabled, pc_knowledge=pc_knowledge)
 
     def reload_commands(self, pc_knowledge: str | None = None) -> None:
         """Rebuild the agent with current IR commands and knowledge."""
@@ -35,7 +37,7 @@ class Brain:
             self._pc_knowledge = pc_knowledge
         self.agent = create_agent(
             model=self._model, ir=self._ir, music=self._music,
-            pc_knowledge=self._pc_knowledge,
+            pc_enabled=self._pc_enabled, pc_knowledge=self._pc_knowledge,
         )
 
     async def process(self, text: str) -> ClawdiaResponse:
@@ -45,6 +47,7 @@ class Brain:
             model=self._model,
             ir=self._ir,
             music=self._music,
+            pc_enabled=self._pc_enabled,
             pc_knowledge=self._pc_knowledge,
             playback_state=playback_state,
         )

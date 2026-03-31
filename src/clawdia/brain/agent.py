@@ -81,6 +81,7 @@ PC_DISABLED = "PC remote control is not configured."
 def build_system_prompt(
     ir: IRController,
     music: MusicController | None = None,
+    pc_enabled: bool = False,
     pc_knowledge: str = "",
     playback_state: str | None = None,
 ) -> str:
@@ -94,8 +95,8 @@ def build_system_prompt(
     music_section = MUSIC_ENABLED if music else MUSIC_DISABLED
     ps = playback_state if playback_state else ""
 
-    if pc_knowledge:
-        pc_section = PC_ENABLED.format(pc_knowledge=pc_knowledge)
+    if pc_enabled:
+        pc_section = PC_ENABLED.format(pc_knowledge=pc_knowledge or "No facts recorded yet.")
     else:
         pc_section = PC_DISABLED
 
@@ -111,17 +112,18 @@ def create_agent(
     model: str = "openrouter:anthropic/claude-haiku-4.5",
     ir: IRController | None = None,
     music: MusicController | None = None,
+    pc_enabled: bool = False,
     pc_knowledge: str = "",
     playback_state: str | None = None,
 ) -> Agent:
     """Create the Clawdia PydanticAI agent."""
     if ir:
-        prompt = build_system_prompt(ir=ir, music=music, pc_knowledge=pc_knowledge, playback_state=playback_state)
+        prompt = build_system_prompt(ir=ir, music=music, pc_enabled=pc_enabled, pc_knowledge=pc_knowledge, playback_state=playback_state)
     else:
         prompt = SYSTEM_PROMPT.format(
             ir_commands="No IR commands recorded yet.",
             music_section=MUSIC_ENABLED if music else MUSIC_DISABLED,
-            pc_section=PC_ENABLED.format(pc_knowledge=pc_knowledge) if pc_knowledge else PC_DISABLED,
+            pc_section=PC_ENABLED.format(pc_knowledge=pc_knowledge or "No facts recorded yet.") if pc_enabled else PC_DISABLED,
             playback_state=playback_state or "",
         )
     return Agent(
