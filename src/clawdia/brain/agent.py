@@ -23,6 +23,10 @@ You can control devices via infrared commands, control music playback, and answe
 
 {music_section}
 
+## Current Playback State
+
+{playback_state}
+
 ## Rules
 
 1. If the user wants to control a device (TV, etc.), respond with action="ir" and the exact command name.
@@ -51,7 +55,7 @@ MUSIC_ENABLED = "Music playback is available via Spotify. Use action=\"music\" f
 MUSIC_DISABLED = "Music playback is not currently configured."
 
 
-def build_system_prompt(ir: IRController, music: MusicController | None = None) -> str:
+def build_system_prompt(ir: IRController, music: MusicController | None = None, playback_state: str | None = None) -> str:
     commands = ir.list_commands_with_descriptions()
     if commands:
         lines = [f"- {name}: {desc}" if desc else f"- {name}" for name, desc in commands]
@@ -60,22 +64,25 @@ def build_system_prompt(ir: IRController, music: MusicController | None = None) 
         ir_commands = "No IR commands recorded yet."
 
     music_section = MUSIC_ENABLED if music else MUSIC_DISABLED
+    ps = playback_state if playback_state else ""
 
-    return SYSTEM_PROMPT.format(ir_commands=ir_commands, music_section=music_section)
+    return SYSTEM_PROMPT.format(ir_commands=ir_commands, music_section=music_section, playback_state=ps)
 
 
 def create_agent(
     model: str = "openrouter:anthropic/claude-haiku-4.5",
     ir: IRController | None = None,
     music: MusicController | None = None,
+    playback_state: str | None = None,
 ) -> Agent:
     """Create the Clawdia PydanticAI agent."""
     if ir:
-        prompt = build_system_prompt(ir=ir, music=music)
+        prompt = build_system_prompt(ir=ir, music=music, playback_state=playback_state)
     else:
         prompt = SYSTEM_PROMPT.format(
             ir_commands="No IR commands recorded yet.",
             music_section=MUSIC_ENABLED if music else MUSIC_DISABLED,
+            playback_state=playback_state or "",
         )
     return Agent(
         model,
