@@ -7,13 +7,13 @@ import signal
 from dotenv import load_dotenv
 load_dotenv()
 
-from clawdia.config import settings
-from clawdia.brain import Brain
-from clawdia.ir import IRController
-from clawdia.music import MusicController
-from clawdia.orchestrator import Orchestrator
-from clawdia.playback import PlaybackCoordinator
-from clawdia.telegram_bot import ClawdiaTelegramBot
+from clawdia.config import settings  # noqa: E402
+from clawdia.brain import Brain  # noqa: E402
+from clawdia.ir import IRController  # noqa: E402
+from clawdia.music import MusicController  # noqa: E402
+from clawdia.orchestrator import Orchestrator  # noqa: E402
+from clawdia.playback import PlaybackCoordinator  # noqa: E402
+from clawdia.telegram_bot import ClawdiaTelegramBot  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
