@@ -39,29 +39,26 @@ async def run() -> None:
     music = None
     music_controllers: dict[int, MusicController] = {}
     if settings.spotify_users:
-        # First user owns the librespot device — others delegate device lookup to them
-        primary: MusicController | None = None
+        # Format: chat_id:cache_path:device_name[:client_id:client_secret],...
         for entry in settings.spotify_users.split(","):
             parts = entry.strip().split(":")
-            if len(parts) < 2:
-                logger.warning("Invalid SPOTIFY_USERS entry: %s", entry)
+            if len(parts) < 3:
+                logger.warning("Invalid SPOTIFY_USERS entry (need chat_id:cache:device): %s", entry)
                 continue
             chat_id = int(parts[0])
             cache_path = parts[1]
-            client_id = parts[2] if len(parts) > 2 else settings.spotify_client_id
-            client_secret = parts[3] if len(parts) > 3 else settings.spotify_client_secret
+            device_name = parts[2]
+            client_id = parts[3] if len(parts) > 3 else settings.spotify_client_id
+            client_secret = parts[4] if len(parts) > 4 else settings.spotify_client_secret
             mc = MusicController(
                 client_id=client_id,
                 client_secret=client_secret,
                 redirect_uri=settings.spotify_redirect_uri,
-                device_name=settings.spotify_device_name,
+                device_name=device_name,
                 cache_path=cache_path,
-                device_controller=primary,
             )
-            if primary is None:
-                primary = mc
             music_controllers[chat_id] = mc
-            logger.info("Spotify controller for chat %d (cache: %s)", chat_id, cache_path)
+            logger.info("Spotify controller for chat %d (device: %s, cache: %s)", chat_id, device_name, cache_path)
         if music_controllers:
             music = next(iter(music_controllers.values()))
     elif settings.spotify_client_id and settings.spotify_client_secret:

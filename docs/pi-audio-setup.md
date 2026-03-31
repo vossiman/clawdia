@@ -51,36 +51,35 @@ librespot 0.8.0 requires OAuth (username/password auth removed). Since the Pi is
 
 ### systemd service
 
-File: `~/.config/systemd/user/librespot.service`
+Each household member gets their own librespot instance with a unique device name. Service files are in `scripts/`.
 
-```ini
-[Unit]
-Description=Librespot Spotify Connect
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-ExecStart=/home/vossi/.cargo/bin/librespot -n clawdia -d UACDemoV1.0 -b 160 --device-type speaker -c /tmp/librespot-cache
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=default.target
+Install a service:
+```bash
+cp scripts/librespot-gernot.service ~/.config/systemd/user/
+cp scripts/librespot-oxana.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now librespot-gernot
+systemctl --user enable --now librespot-oxana
+sudo loginctl enable-linger vossi   # Survive logout
 ```
 
+Each instance needs its own OAuth (first-time only, via SSH tunnel):
 ```bash
-systemctl --user daemon-reload
-systemctl --user enable --now librespot
-sudo loginctl enable-linger vossi   # Survive logout
+ssh -L 8080:127.0.0.1:8080 clawdia
+# On the Pi:
+~/.cargo/bin/librespot -n clawdia-oxana -d 'UACDemoV1.0' -b 160 \
+  --device-type speaker -c /tmp/librespot-cache-oxana \
+  --enable-oauth --oauth-port 8080
 ```
 
 ### Verification
 
 ```bash
-systemctl --user status librespot   # Should show "Authenticated as '116616176'"
+systemctl --user status librespot-gernot
+systemctl --user status librespot-oxana
 ```
 
-The Pi shows up as "clawdia" in the Spotify app's device list and can receive playback commands via both the Spotify app (Spotify Connect) and Clawdia's Telegram bot / Web API.
+The Pi shows up as "clawdia-gernot" and "clawdia-oxana" in the Spotify app's device list. Each user's Telegram commands route to their own device.
 
 ## Clawdia Integration
 
@@ -181,14 +180,16 @@ The script prints an auth URL — open it in a browser, authorize, paste the red
 
 **3. Configure `.env`**
 
-Map each Telegram chat ID to its cache file. **The first entry must be the account that librespot is authenticated as** — this account owns the Pi speaker device, and other users' playback commands are routed through it:
+Map each Telegram chat ID to its cache file and librespot device name:
 ```
-SPOTIFY_USERS=4380413:.spotify_cache,180506269:.spotify_cache_oxana
+SPOTIFY_USERS=4380413:.spotify_cache:clawdia-gernot,180506269:.spotify_cache_oxana:clawdia-oxana
 ```
 
-The shared `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` are used for all users. If a user needs their own app credentials, use the extended format:
+Format: `chat_id:cache_path:device_name[,...]`
+
+The shared `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` are used for all users. If a user needs their own app credentials, append them:
 ```
-SPOTIFY_USERS=4380413:.spotify_cache:id1:secret1,180506269:.spotify_cache_oxana:id2:secret2
+SPOTIFY_USERS=4380413:.spotify_cache:clawdia-gernot:id1:secret1,180506269:.spotify_cache_oxana:clawdia-oxana:id2:secret2
 ```
 
 **4. Volume mounts in `docker-compose.yml`**
@@ -208,8 +209,8 @@ git pull && docker compose up -d --build
 
 ### How it works
 
-- `main.py` parses `SPOTIFY_USERS` and creates one `MusicController` per user
-- The first user's controller owns the librespot device — other controllers delegate device lookup to it (Spotify Connect devices are only visible to the account librespot authenticated as)
+- Each user has their own librespot instance (e.g. `clawdia-gernot`, `clawdia-oxana`) — Spotify Connect devices are account-scoped
+- `main.py` parses `SPOTIFY_USERS` and creates one `MusicController` per user, each pointing to their own device
 - The Telegram bot routes music commands to the correct controller based on `update.effective_chat.id`
 - If a chat ID isn't in `SPOTIFY_USERS`, it falls back to the default single-user controller
 - The `Brain` and `Orchestrator` get a single default controller (they just need to know music is available)
@@ -218,10 +219,12 @@ git pull && docker compose up -d --build
 ### Adding a new user
 
 1. Add their email to User Management in the Spotify Developer Dashboard
-2. Run `scripts/oauth_spotify.py .spotify_cache_<name>` on the Pi
-3. Add their chat_id and cache path to `SPOTIFY_USERS` in `.env`
-4. Add a volume mount for their cache file in `docker-compose.yml`
-5. Restart: `docker compose up -d --build`
+2. Create a librespot service file (`scripts/librespot-<name>.service`) and install it
+3. Run librespot OAuth for their account (SSH tunnel + `--enable-oauth`)
+4. Run `scripts/oauth_spotify.py .spotify_cache_<name>` on the Pi for the Web API token
+5. Add their `chat_id:cache_path:device_name` to `SPOTIFY_USERS` in `.env`
+6. Add a volume mount for their cache file in `docker-compose.yml`
+7. Restart: `docker compose up -d --build`
 
 ### OAuth on the Pi: lessons learned
 

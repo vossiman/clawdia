@@ -20,10 +20,8 @@ class MusicController:
         redirect_uri: str,
         device_name: str,
         cache_path: str,
-        device_controller: MusicController | None = None,
     ):
         self._device_name = device_name
-        self._device_controller = device_controller
         auth_manager = SpotifyOAuth(
             client_id=client_id,
             client_secret=client_secret,
@@ -43,20 +41,9 @@ class MusicController:
         """Run a sync spotipy call in a thread."""
         return await asyncio.to_thread(partial(func, *args, **kwargs))
 
-    @property
-    def _playback_sp(self) -> spotipy.Spotify:
-        """Spotipy client for device-bound operations.
-
-        Spotify Connect devices are only visible to the account that librespot
-        authenticated as. All playback commands must use that account's client.
-        """
-        if self._device_controller is not None:
-            return self._device_controller._sp
-        return self._sp
-
     async def _get_device_id(self) -> str | None:
         """Find the device ID for the librespot instance."""
-        devices = await self._run(self._playback_sp.devices)
+        devices = await self._run(self._sp.devices)
         for device in devices.get("devices", []):
             if device["name"] == self._device_name:
                 return device["id"]
@@ -68,10 +55,10 @@ class MusicController:
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
         if uri:
-            await self._run(self._playback_sp.start_playback, device_id=device_id, uris=[uri])
+            await self._run(self._sp.start_playback, device_id=device_id, uris=[uri])
             return f"Playing on {self._device_name}."
         else:
-            await self._run(self._playback_sp.start_playback, device_id=device_id)
+            await self._run(self._sp.start_playback, device_id=device_id)
             return "Resuming playback."
 
     async def pause(self) -> str:
@@ -79,7 +66,7 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        await self._run(self._playback_sp.pause_playback, device_id=device_id)
+        await self._run(self._sp.pause_playback, device_id=device_id)
         return "Playback paused."
 
     async def skip(self) -> str:
@@ -87,7 +74,7 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        await self._run(self._playback_sp.next_track, device_id=device_id)
+        await self._run(self._sp.next_track, device_id=device_id)
         return "Skipped to next track."
 
     async def previous(self) -> str:
@@ -95,7 +82,7 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        await self._run(self._playback_sp.previous_track, device_id=device_id)
+        await self._run(self._sp.previous_track, device_id=device_id)
         return "Back to previous track."
 
     async def volume(self, level: int) -> str:
@@ -103,7 +90,7 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        await self._run(self._playback_sp.volume, level, device_id=device_id)
+        await self._run(self._sp.volume, level, device_id=device_id)
         return f"Volume set to {level}%."
 
     async def search(self, query: str, search_type: str = "track") -> list[dict]:
@@ -131,7 +118,7 @@ class MusicController:
         track = tracks[0]
         name = track["name"]
         artist = track["artists"][0]["name"]
-        await self._run(self._playback_sp.start_playback, device_id=device_id, uris=[track["uri"]])
+        await self._run(self._sp.start_playback, device_id=device_id, uris=[track["uri"]])
         return f"Now playing: {name} by {artist}"
 
     async def play_playlist(self, name: str) -> str:
@@ -148,7 +135,7 @@ class MusicController:
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
         await self._run(
-            self._playback_sp.start_playback,
+            self._sp.start_playback,
             device_id=device_id,
             context_uri=matched["uri"],
         )
@@ -166,12 +153,12 @@ class MusicController:
         track = tracks[0]
         name = track["name"]
         artist = track["artists"][0]["name"]
-        await self._run(self._playback_sp.add_to_queue, track["uri"], device_id=device_id)
+        await self._run(self._sp.add_to_queue, track["uri"], device_id=device_id)
         return f"Added to queue: {name} by {artist}"
 
     async def now_playing(self) -> str:
         """Get info about the currently playing track."""
-        playback = await self._run(self._playback_sp.current_playback)
+        playback = await self._run(self._sp.current_playback)
         if not playback or not playback.get("item"):
             return "Nothing is currently playing."
         item = playback["item"]
