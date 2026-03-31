@@ -156,9 +156,74 @@ Natural language also works: "play some jazz", "skip this song", "what's playing
 ### Wrong search results
 - Spotify's search API can return unexpected results with `limit=1`. We use `limit=5` and take the first result for better accuracy.
 
+## Multi-user Spotify (WIP)
+
+### Goal
+
+Each household member gets their own Spotify account linked to their Telegram chat ID. When vossi sends `/play`, it uses vossi's Spotify. When Oxana sends `/play`, it uses Oxana's Spotify. Both play through the same Pi speaker via librespot.
+
+### Current state
+
+- **vossi (chat ID 4380413):** Fully working. Has `.spotify_cache` with valid refresh token.
+- **Oxana (chat ID 180506269):** Needs her own `.spotify_cache_oxana` — OAuth not yet completed.
+
+### Planned approach
+
+Config: per-user Spotify credentials via env var mapping chat IDs to cache files:
+```
+SPOTIFY_USERS=4380413:.spotify_cache,180506269:.spotify_cache_oxana
+```
+
+The Spotify Developer App (client_id/secret) is shared — it's the app, not the user. Each user just needs their own OAuth token (refresh token stored in their cache file).
+
+Code changes needed:
+- `MusicController` stays the same — one instance per user
+- `main.py` creates a dict of `chat_id → MusicController`
+- Telegram bot picks the right controller based on `update.effective_chat.id`
+- librespot on the Pi stays as one device — whoever plays last takes over the speaker
+
+### Blocker: Spotify Developer App in Development Mode
+
+Spotify apps in "Development Mode" restrict which users can authorize. Users must be explicitly added via **User Management** in the Developer Dashboard.
+
+**Problem:** After adding Oxana's email to User Management, the OAuth flow returns `invalid_scope` for her — even though the exact same scopes work for vossi's account. This is a known misleading error from Spotify's Development Mode — it means the user isn't properly authorized, not that the scopes are invalid.
+
+**What we tried:**
+- Verified Oxana's email matches her Spotify account exactly
+- Removed and re-added her in User Management
+- Waited several minutes between retries
+- Tried with minimal scopes (just `user-read-playback-state`) — same error
+- Tried incognito browser windows
+- No confirmation email was sent to Oxana (Spotify may not always send one)
+
+**Possible solutions (not yet tried):**
+1. **Oxana creates her own Spotify Developer App** — she registers at developer.spotify.com with her account, creates an app, and we store her client_id/secret separately. Each user would have their own app credentials.
+2. **Request "Extended Quota Mode"** for the app via the Spotify Developer Dashboard — this removes the user restriction but requires Spotify review.
+3. **Wait and retry** — Spotify's User Management propagation can be slow or buggy.
+
+### OAuth on the Pi: lessons learned
+
+Running the spotipy OAuth flow on the Pi is painful because:
+- No `uv` installed on the Pi (dependencies managed via Docker)
+- No `pip` installed by default (Debian Trixie, had to `apt install python3-pip`)
+- System Python is 3.13, Docker uses 3.12 — version mismatch possible
+- `source .env` doesn't export vars properly for Python's `os.environ`
+- Interactive OAuth in `docker compose exec` doesn't handle stdin well
+
+**What works:** Use the Docker container to generate the auth URL (`open_browser=False`), then manually paste the redirect URL back. Or run the OAuth locally where you have `uv` and a browser, then `scp` the cache file to the Pi.
+
+**Recommended approach for future OAuth flows:**
+1. Generate auth URL via Docker: `docker compose exec -T clawdia python3 -c "..."`
+2. Open URL in browser, authorize
+3. Copy the redirect URL (the `?code=...` part)
+4. Exchange the code via Docker: `docker compose exec -T clawdia python3 -c "..."` with the code
+
 ## What didn't work (for future reference)
 
 - **spotifyd 0.4.x prebuilt binaries:** Linked against OpenSSL 1.1, Debian Trixie has OpenSSL 3. Had to build from source.
 - **spotifyd 0.4.1 playback:** OAuth flow registers as free-tier product (`product=0`), all tracks marked "NonPlayable". Switching to librespot 0.8.0 fixed this.
 - **spotifyd 0.4.2:** Requires rustc 1.88, Pi has 1.85.
 - **`localhost` as redirect URI:** Spotify explicitly bans `localhost` — must use `127.0.0.1`.
+- **spotifyd 0.4.1 from source (first attempt):** `cargo install spotifyd` without `--locked` pulled newer dependency versions requiring rustc 1.88. Fixed with `--locked`.
+- **librespot 0.8.0 password auth:** Removed in 0.8.0, only OAuth supported. Must use `--enable-oauth` with port forwarding for headless setup.
+- **Multi-user OAuth with Development Mode app:** Second user gets `invalid_scope` even with correct User Management setup. Spotify's error message is misleading — it's an authorization issue, not a scope issue.
