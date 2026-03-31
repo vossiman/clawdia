@@ -12,6 +12,7 @@ from clawdia.brain import Brain
 from clawdia.ir import IRController
 from clawdia.music import MusicController
 from clawdia.orchestrator import Orchestrator
+from clawdia.playback import PlaybackCoordinator
 from clawdia.telegram_bot import ClawdiaTelegramBot
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,14 @@ async def run() -> None:
     else:
         logger.info("Spotify not configured (missing client credentials)")
 
-    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music)
+    coordinator = PlaybackCoordinator()
+    for chat_id, mc in music_controllers.items():
+        coordinator.register_service(f"spotify:{chat_id}", stop=mc.pause)
+        logger.info("Registered playback service spotify:%d", chat_id)
+    if music and not music_controllers:
+        coordinator.register_service("spotify:default", stop=music.pause)
+
+    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, coordinator=coordinator)
 
     chat_ids = {int(x.strip()) for x in settings.telegram_chat_ids.split(",") if x.strip()}
     logger.info("Allowed Telegram chat IDs: %s", chat_ids)
@@ -85,6 +93,7 @@ async def run() -> None:
         ir=ir,
         music=music,
         music_controllers=music_controllers or None,
+        coordinator=coordinator,
     )
 
     # Optional: STT (needs OpenAI API key)
@@ -102,6 +111,7 @@ async def run() -> None:
         telegram=telegram,
         stt=stt,
         music=music,
+        coordinator=coordinator,
     )
 
     # Start services
