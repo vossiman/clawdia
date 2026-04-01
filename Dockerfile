@@ -1,10 +1,11 @@
 FROM python:3.12-slim
 
-# System deps for pyaudio and ir-ctl
+# System deps for pyaudio, ir-ctl, and systemctl (for librespot restart)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     portaudio19-dev \
     v4l-utils \
     openssh-client \
+    systemd \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -19,7 +20,7 @@ COPY src/ src/
 # Install the package
 RUN pip install --no-cache-dir -e .
 
-# Create IR codes directory
-RUN mkdir -p ir-codes
+# Create dirs and make writable for non-root user
+RUN mkdir -p ir-codes && chown -R 1000:1000 /app
 
 CMD ["python", "-m", "clawdia.main"]

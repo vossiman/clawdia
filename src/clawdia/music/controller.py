@@ -37,17 +37,41 @@ class MusicController:
         )
         self._sp = spotipy.Spotify(auth_manager=auth_manager)
 
+    async def check_device_available(self) -> bool:
+        """Check if the Spotify device is visible via the API (no auto-recovery)."""
+        return await self._get_device_id_no_recover() is not None
+
     async def _run(self, func, *args, **kwargs):
         """Run a sync spotipy call in a thread."""
         return await asyncio.to_thread(partial(func, *args, **kwargs))
 
-    async def _get_device_id(self) -> str | None:
-        """Find the device ID for the librespot instance."""
+    async def _get_device_id(self, auto_recover: bool = True) -> str | None:
+        """Find the device ID for the librespot instance.
+
+        If the device is not found and auto_recover is True, attempts to
+        restart the corresponding librespot service and retries.
+        """
         devices = await self._run(self._sp.devices)
         for device in devices.get("devices", []):
             if device["name"] == self._device_name:
                 return device["id"]
+
+        if auto_recover:
+            from clawdia.health import ensure_spotify_device
+            logger.warning("Device '%s' not found, attempting auto-recovery", self._device_name)
+            recovered = await ensure_spotify_device(self, self._device_name)
+            if recovered:
+                # Retry device lookup after recovery
+                devices = await self._run(self._sp.devices)
+                for device in devices.get("devices", []):
+                    if device["name"] == self._device_name:
+                        return device["id"]
+
         return None
+
+    async def _get_device_id_no_recover(self) -> str | None:
+        """Find device ID without auto-recovery (used by health checks)."""
+        return await self._get_device_id(auto_recover=False)
 
     async def _verify_playback_started(self, device_id: str, max_retries: int = 2) -> bool:
         """Check if the device became active after a play command. Returns True if playing."""

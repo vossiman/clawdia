@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     env_file: .env
     network_mode: host
+    user: "1000:1000"
     devices:
       - /dev/lirc0:/dev/lirc0
       - /dev/lirc1:/dev/lirc1
@@ -13,7 +14,12 @@ services:
       - ./models:/app/models
       - ./.spotify_cache:/app/.spotify_cache
       - ./.spotify_cache_oxana:/app/.spotify_cache_oxana
-      - /home/vossi/.ssh:/root/.ssh:ro
+      - /home/vossi/.ssh:/home/vossi/.ssh:ro
       - /run/user/1000/pulse:/run/user/1000/pulse
+      - /run/user/1000/systemd:/run/user/1000/systemd
+      - /run/user/1000/bus:/run/user/1000/bus
     environment:
       - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+      - HOME=/home/vossi

@@ -145,7 +145,19 @@ async def run() -> None:
 
     # Start services
     await telegram.start()
-    await telegram.notify("Clawdia is online!")
+
+    # Run startup health checks
+    from clawdia.health import startup_health_check
+    issues = await startup_health_check(
+        music_controllers=music_controllers or None,
+        pc=pc,
+        ir=ir,
+    )
+    if issues:
+        status_msg = "Clawdia is online with issues:\n" + "\n".join(f"- {i}" for i in issues)
+    else:
+        status_msg = "Clawdia is online! All systems go."
+    await telegram.notify(status_msg)
     logger.info("Clawdia is running. Telegram bot active. Ctrl+C to stop.")
 
     # Optional: Start wake word listener (needs hardware)
