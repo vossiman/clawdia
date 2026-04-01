@@ -1,34 +1,27 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import signal
 
 from dotenv import load_dotenv
 load_dotenv()
 
+from loguru import logger  # noqa: E402
+
 from clawdia.config import settings  # noqa: E402
 from clawdia.brain import Brain  # noqa: E402
 from clawdia.ir import IRController  # noqa: E402
+from clawdia.log import setup as setup_logging  # noqa: E402
 from clawdia.logger_db import InteractionLogger  # noqa: E402
 from clawdia.music import MusicController  # noqa: E402
 from clawdia.orchestrator import Orchestrator  # noqa: E402
 from clawdia.playback import PlaybackCoordinator  # noqa: E402
 from clawdia.telegram_bot import ClawdiaTelegramBot  # noqa: E402
 
-logger = logging.getLogger(__name__)
-
 
 async def run() -> None:
     """Main async entry point for Clawdia."""
-    logging.basicConfig(
-        level=logging.DEBUG if settings.debug else logging.INFO,
-        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    )
-    # Prevent bot token from leaking in debug logs
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-    logging.getLogger("telegram").setLevel(logging.WARNING)
+    setup_logging(data_dir=settings.data_dir, debug=settings.debug)
     logger.info("Starting Clawdia...")
 
     # Initialize components
@@ -45,7 +38,7 @@ async def run() -> None:
         for entry in settings.spotify_users.split(","):
             parts = entry.strip().split(":")
             if len(parts) < 3:
-                logger.warning("Invalid SPOTIFY_USERS entry (need chat_id:cache:device): %s", entry)
+                logger.warning("Invalid SPOTIFY_USERS entry (need chat_id:cache:device): {}", entry)
                 continue
             chat_id = int(parts[0])
             cache_path = parts[1]
@@ -60,7 +53,7 @@ async def run() -> None:
                 cache_path=cache_path,
             )
             music_controllers[chat_id] = mc
-            logger.info("Spotify controller for chat %d (device: %s, cache: %s)", chat_id, device_name, cache_path)
+            logger.info("Spotify controller for chat {} (device: {}, cache: {})", chat_id, device_name, cache_path)
         if music_controllers:
             music = next(iter(music_controllers.values()))
     elif settings.spotify_client_id and settings.spotify_client_secret:
@@ -71,7 +64,7 @@ async def run() -> None:
             device_name=settings.spotify_device_name,
             cache_path=settings.spotify_cache_path,
         )
-        logger.info("Spotify music controller initialized (device: %s)", settings.spotify_device_name)
+        logger.info("Spotify music controller initialized (device: {})", settings.spotify_device_name)
     else:
         logger.info("Spotify not configured (missing client credentials)")
 
@@ -89,25 +82,26 @@ async def run() -> None:
         )
         knowledge = KnowledgeBase("pc_knowledge.yaml")
         pc_knowledge = knowledge.to_prompt_context()
-        logger.info("PC remote control enabled (host: %s)", settings.pc_ssh_host)
+        logger.info("PC remote control enabled (host: {})", settings.pc_ssh_host)
     else:
         logger.info("PC remote control not configured (missing SSH host/user)")
 
     coordinator = PlaybackCoordinator()
     for chat_id, mc in music_controllers.items():
         coordinator.register_service(f"spotify:{chat_id}", stop=mc.pause)
-        logger.info("Registered playback service spotify:%d", chat_id)
+        logger.info("Registered playback service spotify:{}", chat_id)
     if music and not music_controllers:
         coordinator.register_service("spotify:default", stop=music.pause)
 
-    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, pc_enabled=pc is not None, pc_knowledge=pc_knowledge, coordinator=coordinator)
+    # Interaction logger & database
+    interaction_logger = InteractionLogger(db_path=f"{settings.data_dir}/clawdia.db")
+    await interaction_logger.init_db()
+
+    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, pc_enabled=pc is not None, pc_knowledge=pc_knowledge, coordinator=coordinator, db=interaction_logger)
+    await brain.load_history()
 
     chat_ids = {int(x.strip()) for x in settings.telegram_chat_ids.split(",") if x.strip()}
-    logger.info("Allowed Telegram chat IDs: %s", chat_ids)
-
-    # Interaction logger
-    interaction_logger = InteractionLogger()
-    await interaction_logger.init_db()
+    logger.info("Allowed Telegram chat IDs: {}", chat_ids)
 
     telegram = ClawdiaTelegramBot(
         token=settings.telegram_bot_token,

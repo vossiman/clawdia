@@ -19,6 +19,8 @@ venv/
 
 # Clawdia runtime
 *.tflite
+data/*.db
+data/*.log
 
 # IDE
 .vscode/

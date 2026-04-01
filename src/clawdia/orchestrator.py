@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
+
+from loguru import logger
 
 from clawdia.logger_db import InteractionLogger, ms_since
 
@@ -18,8 +19,6 @@ if TYPE_CHECKING:
     from clawdia.playback import PlaybackCoordinator
     from clawdia.telegram_bot import ClawdiaTelegramBot
     from clawdia.voice.stt import SpeechToText
-
-logger = logging.getLogger(__name__)
 
 MUSIC_DISPATCH = {
     "play": lambda m, a: m.play(a.query),
@@ -109,7 +108,7 @@ class Orchestrator:
         chat_id: int | None = None,
     ) -> None:
         """Process a text command through the full pipeline."""
-        logger.info("Processing command: '%s' (source=%s, context=%s)", text, source, context_id)
+        logger.info("Processing command: '{}' (source={}, context={})", text, source, context_id)
 
         async def send(msg: str) -> None:
             if reply:

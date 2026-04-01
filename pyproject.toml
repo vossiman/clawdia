@@ -14,6 +14,7 @@ dependencies = [
     "spotipy>=2.24",
     "pyyaml>=6.0",
     "aiosqlite>=0.20",
+    "loguru>=0.7",
 ]
 
 [project.optional-dependencies]

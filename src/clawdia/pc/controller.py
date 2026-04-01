@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclass
@@ -41,7 +40,7 @@ class PCController:
 
     async def _run_ssh(self, remote_cmd: str, timeout: float = 30.0) -> PCResult:
         cmd = self._build_ssh_cmd(remote_cmd)
-        logger.info("SSH command: %s", " ".join(cmd))
+        logger.info("SSH command: {}", " ".join(cmd))
 
         try:
             process = await asyncio.create_subprocess_exec(
@@ -55,7 +54,7 @@ class PCController:
         except asyncio.TimeoutError:
             process.kill()
             await process.wait()
-            logger.error("SSH command timed out after %.0fs", timeout)
+            logger.error("SSH command timed out after {:.0f}s", timeout)
             return PCResult(success=False, output="Command timed out")
         except Exception as e:
             logger.exception("SSH command failed")
@@ -64,7 +63,7 @@ class PCController:
         out_text = stdout.decode().strip()
         err_text = stderr.decode().strip()
         logger.info(
-            "SSH result: exit_code=%d stdout=%s stderr=%s",
+            "SSH result: exit_code={} stdout={} stderr={}",
             process.returncode,
             out_text[:500] if out_text else "(empty)",
             err_text[:500] if err_text else "(empty)",

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class IRController:
@@ -62,7 +61,7 @@ class IRController:
         if description:
             self._meta[command] = description
             self._save_meta()
-        logger.info("Generated IR code: %s (%s) -> %s", command, code_label, path)
+        logger.info("Generated IR code: {} ({}) -> {}", command, code_label, path)
         return path
 
     def __init__(self, device_send: str = "/dev/lirc0", codes_dir: str = "ir-codes"):
@@ -112,7 +111,7 @@ class IRController:
         """
         code_path = self.get_code_path(command)
         if code_path is None:
-            logger.warning("IR command '%s' not found in %s", command, self.codes_dir)
+            logger.warning("IR command '{}' not found in {}", command, self.codes_dir)
             return False
 
         for i in range(repeat):
@@ -128,7 +127,7 @@ class IRController:
 
                 if process.returncode != 0:
                     logger.error(
-                        "ir-ctl send failed (code %d): %s",
+                        "ir-ctl send failed (code {}): {}",
                         process.returncode,
                         stderr.decode().strip(),
                     )
@@ -141,7 +140,7 @@ class IRController:
                 logger.error("ir-ctl not found. Install v4l-utils: sudo apt install v4l-utils")
                 return False
 
-        logger.info("IR command '%s' sent successfully (repeat=%d)", command, repeat)
+        logger.info("IR command '{}' sent successfully (repeat={})", command, repeat)
         return True
 
     async def record(self, command: str, timeout: float = 10.0) -> bool:
@@ -165,15 +164,15 @@ class IRController:
 
             if process.returncode == 0 and stdout:
                 code_path.write_bytes(stdout)
-                logger.info("IR code recorded: %s -> %s", command, code_path)
+                logger.info("IR code recorded: {} -> {}", command, code_path)
                 return True
 
-            logger.warning("IR recording returned no data for '%s'", command)
+            logger.warning("IR recording returned no data for '{}'", command)
             return False
 
         except asyncio.TimeoutError:
             process.kill()
-            logger.warning("IR recording timed out for '%s'", command)
+            logger.warning("IR recording timed out for '{}'", command)
             return False
         except FileNotFoundError:
             logger.error("ir-ctl not found. Install v4l-utils.")

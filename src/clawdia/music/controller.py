@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from functools import partial
 
 import spotipy
+from loguru import logger
 from spotipy.oauth2 import SpotifyOAuth
-
-logger = logging.getLogger(__name__)
 
 
 class MusicController:
@@ -58,7 +56,7 @@ class MusicController:
 
         if auto_recover:
             from clawdia.health import ensure_spotify_device
-            logger.warning("Device '%s' not found, attempting auto-recovery", self._device_name)
+            logger.warning("Device '{}' not found, attempting auto-recovery", self._device_name)
             recovered = await ensure_spotify_device(self, self._device_name)
             if recovered:
                 # Retry device lookup after recovery
@@ -82,7 +80,7 @@ class MusicController:
                 if device["id"] == device_id and device.get("is_active"):
                     return True
             logger.warning(
-                "Playback not active on %s after attempt %d/%d",
+                "Playback not active on {} after attempt {}/{}",
                 self._device_name, attempt + 1, max_retries,
             )
         return False
@@ -94,7 +92,7 @@ class MusicController:
             if await self._verify_playback_started(device_id):
                 return True
             logger.warning(
-                "Retrying start_playback on %s (attempt %d/%d)",
+                "Retrying start_playback on {} (attempt {}/{})",
                 self._device_name, attempt, max_retries,
             )
         return False

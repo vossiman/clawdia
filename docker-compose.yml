@@ -10,6 +10,7 @@ services:
       - /dev/lirc1:/dev/lirc1
       - /dev/snd:/dev/snd
     volumes:
+      - ./data:/app/data
       - ./ir-codes:/app/ir-codes
       - ./models:/app/models
       - ./.spotify_cache:/app/.spotify_cache

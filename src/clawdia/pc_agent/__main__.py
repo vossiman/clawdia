@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import logging
 import os
 import sys
 
@@ -21,8 +20,6 @@ def main():
     if not args.api_key:
         print('{"success": false, "summary": "ANTHROPIC_API_KEY not set"}')
         sys.exit(1)
-
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s", stream=sys.stderr)
 
     agent = ComputerUseAgent(
         api_key=args.api_key,

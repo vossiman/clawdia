@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 import telegram
+from loguru import logger
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import (
@@ -20,9 +20,6 @@ if TYPE_CHECKING:
     from clawdia.music import MusicController
     from clawdia.orchestrator import Orchestrator
     from clawdia.playback import PlaybackCoordinator
-
-logger = logging.getLogger(__name__)
-
 
 class ClawdiaTelegramBot:
     """Telegram bot for Clawdia - receives commands, sends notifications."""
@@ -65,7 +62,7 @@ class ClawdiaTelegramBot:
             try:
                 await self._bot.send_message(chat_id=chat_id, text=text)
             except Exception:
-                logger.exception("Failed to send Telegram notification to %s", chat_id)
+                logger.exception("Failed to send Telegram notification to {}", chat_id)
 
     def _build_app(self) -> Application:
         """Build the Telegram application with handlers."""
@@ -325,7 +322,7 @@ class ClawdiaTelegramBot:
 
         text = update.message.text
         chat_id = update.effective_chat.id
-        logger.info("Telegram message received: %s", text)
+        logger.info("Telegram message received: {}", text)
 
         if not self._orchestrator:
             await update.message.reply_text("Sorry, I'm not fully initialized yet.")

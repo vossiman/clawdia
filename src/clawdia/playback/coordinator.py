@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclass
@@ -60,7 +59,7 @@ class PlaybackCoordinator:
             try:
                 await stop_cb()
             except Exception:
-                logger.exception("Failed to stop %s", self.state.service)
+                logger.exception("Failed to stop {}", self.state.service)
         self.state = None
 
     def get_state_for_prompt(self) -> str:

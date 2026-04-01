@@ -47,6 +47,7 @@ class Settings(BaseSettings):
 
     # General
     debug: bool = False
+    data_dir: str = "data"
 
 
 settings = Settings()

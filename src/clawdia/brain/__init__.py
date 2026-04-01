@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
-from pydantic_ai.messages import ModelMessage
+from loguru import logger
+from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 
 from clawdia.brain.agent import create_agent
 from clawdia.brain.models import ClawdiaResponse
 
 if TYPE_CHECKING:
     from clawdia.ir import IRController
+    from clawdia.logger_db import InteractionLogger
     from clawdia.music import MusicController
     from clawdia.playback import PlaybackCoordinator
 
@@ -24,6 +27,7 @@ class Brain:
         pc_enabled: bool = False,
         pc_knowledge: str = "",
         coordinator: PlaybackCoordinator | None = None,
+        db: InteractionLogger | None = None,
     ):
         self._model = model
         self._ir = ir
@@ -31,8 +35,28 @@ class Brain:
         self._pc_enabled = pc_enabled
         self._pc_knowledge = pc_knowledge
         self._coordinator = coordinator
+        self._db = db
         self._history: dict[str, list[ModelMessage]] = {}
         self.agent = create_agent(model=model, ir=ir, music=music, pc_enabled=pc_enabled, pc_knowledge=pc_knowledge)
+
+    async def load_history(self) -> None:
+        """Load persisted conversation history from the database."""
+        if not self._db:
+            return
+        rows = await self._db.load_all_history()
+        for context_id, messages_json in rows.items():
+            try:
+                self._history[context_id] = ModelMessagesTypeAdapter.validate_json(messages_json)
+            except Exception:
+                logger.warning("Failed to deserialize history for context {}", context_id)
+
+    async def _save_history(self, context_id: str) -> None:
+        """Persist the trimmed conversation history for a context."""
+        if not self._db:
+            return
+        messages = self._trimmed_history(context_id)
+        messages_json = ModelMessagesTypeAdapter.dump_json(messages).decode()
+        await self._db.save_history(context_id, messages_json)
 
     def reload_commands(self, pc_knowledge: str | None = None) -> None:
         """Rebuild the agent with current IR commands and knowledge."""
@@ -67,4 +91,5 @@ class Brain:
         if context_id not in self._history:
             self._history[context_id] = []
         self._history[context_id].extend(result.new_messages())
+        await self._save_history(context_id)
         return result.output

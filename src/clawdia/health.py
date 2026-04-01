@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 # Librespot systemd service name pattern: device "clawdia-gernot" -> service "librespot-gernot"
 _LIBRESPOT_PREFIX = "clawdia-"
@@ -22,10 +21,10 @@ async def _restart_librespot(device_name: str) -> bool:
     """Restart the librespot systemd user service for a device."""
     service = _service_name_for_device(device_name)
     if not service:
-        logger.warning("Cannot determine systemd service for device '%s'", device_name)
+        logger.warning("Cannot determine systemd service for device '{}'", device_name)
         return False
 
-    logger.info("Restarting %s.service for device '%s'", service, device_name)
+    logger.info("Restarting {}.service for device '{}'", service, device_name)
     try:
         proc = await asyncio.create_subprocess_exec(
             "systemctl", "--user", "restart", service,
@@ -34,16 +33,16 @@ async def _restart_librespot(device_name: str) -> bool:
         )
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
         if proc.returncode == 0:
-            logger.info("Successfully restarted %s", service)
+            logger.info("Successfully restarted {}", service)
             return True
         else:
-            logger.error("Failed to restart %s: %s", service, stderr.decode().strip())
+            logger.error("Failed to restart {}: {}", service, stderr.decode().strip())
             return False
     except asyncio.TimeoutError:
-        logger.error("Timed out restarting %s", service)
+        logger.error("Timed out restarting {}", service)
         return False
     except Exception:
-        logger.exception("Error restarting %s", service)
+        logger.exception("Error restarting {}", service)
         return False
 
 
@@ -60,7 +59,7 @@ async def ensure_spotify_device(
     if await controller.check_device_available():
         return True
 
-    logger.warning("Spotify device '%s' not found, attempting librespot restart", device_name)
+    logger.warning("Spotify device '{}' not found, attempting librespot restart", device_name)
 
     for attempt in range(1, max_retries + 1):
         restarted = await _restart_librespot(device_name)
@@ -70,11 +69,11 @@ async def ensure_spotify_device(
         await asyncio.sleep(wait_after_restart)
 
         if await controller.check_device_available():
-            logger.info("Device '%s' is back after restart (attempt %d)", device_name, attempt)
+            logger.info("Device '{}' is back after restart (attempt {})", device_name, attempt)
             return True
 
         logger.warning(
-            "Device '%s' still not visible after restart attempt %d/%d",
+            "Device '{}' still not visible after restart attempt {}/{}",
             device_name, attempt, max_retries,
         )
 
@@ -96,7 +95,7 @@ async def startup_health_check(
             device_name = mc._device_name
             ok = await ensure_spotify_device(mc, device_name)
             if ok:
-                logger.info("Spotify device '%s' (chat %d): OK", device_name, chat_id)
+                logger.info("Spotify device '{}' (chat {}): OK", device_name, chat_id)
             else:
                 msg = f"Spotify device '{device_name}' offline (chat {chat_id})"
                 logger.error(msg)

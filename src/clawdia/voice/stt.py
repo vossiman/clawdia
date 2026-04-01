@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import io
-import logging
 import wave
 
 import openai
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class SpeechToText:
@@ -38,7 +36,7 @@ class SpeechToText:
                 language=language,
             )
             text = response.text.strip()
-            logger.info("STT result: '%s'", text)
+            logger.info("STT result: '{}'", text)
             return text
         except Exception:
             logger.exception("STT transcription failed")

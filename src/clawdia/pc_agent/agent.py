@@ -2,14 +2,12 @@ from __future__ import annotations
 
 import base64
 import json
-import logging
 from dataclasses import dataclass
 
 import anthropic
+from loguru import logger
 
 from clawdia.pc_agent.actions import take_screenshot, click, type_text, press_key
-
-logger = logging.getLogger(__name__)
 
 MAX_ITERATIONS = 30
 
@@ -75,7 +73,7 @@ class ComputerUseAgent:
             await press_key(tool_input.get("text", ""))
             return await self._take_screenshot()
         else:
-            logger.warning("Unknown action: %s", action)
+            logger.warning("Unknown action: {}", action)
             return await self._take_screenshot()
 
     async def run(self, goal: str, knowledge_context: str) -> AgentResult:
@@ -105,7 +103,7 @@ class ComputerUseAgent:
         ]
 
         for iteration in range(self.max_iterations):
-            logger.info("Computer use iteration %d/%d", iteration + 1, self.max_iterations)
+            logger.info("Computer use iteration {}/{}", iteration + 1, self.max_iterations)
 
             response = await self._call_api(messages, system)
 

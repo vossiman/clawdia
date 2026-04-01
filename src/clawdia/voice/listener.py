@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Callable, Awaitable
 
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class WakeWordListener:
@@ -44,7 +43,7 @@ class WakeWordListener:
                 wakeword_models=[self.model_path] if not self.model_path.startswith("hey_") else [],
                 inference_framework="tflite",
             )
-            logger.info("Wake word model loaded: %s", self.model_path)
+            logger.info("Wake word model loaded: {}", self.model_path)
         except ImportError:
             logger.warning("openwakeword not installed. Wake word detection disabled.")
         except Exception:
@@ -77,7 +76,7 @@ class WakeWordListener:
         )
 
         self._running = True
-        logger.info("Listening for wake word '%s'...", self.model_path)
+        logger.info("Listening for wake word '{}'...", self.model_path)
 
         try:
             while self._running:
@@ -117,7 +116,7 @@ class WakeWordListener:
         frames = []
         num_chunks = int(self.sample_rate / self.chunk_size * duration)
 
-        logger.info("Capturing audio for %.1fs...", duration)
+        logger.info("Capturing audio for {:.1f}s...", duration)
         for _ in range(num_chunks):
             data = stream.read(self.chunk_size, exception_on_overflow=False)
             frames.append(data)
