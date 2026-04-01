@@ -20,6 +20,9 @@ COPY src/ src/
 # Install the package
 RUN pip install --no-cache-dir -e .
 
+# Create user so SSH works when running as uid 1000
+RUN groupadd -g 1000 clawdia && useradd -u 1000 -g 1000 -d /home/vossi -s /bin/bash clawdia && mkdir -p /home/vossi
+
 # Create dirs and make writable for non-root user
 RUN mkdir -p ir-codes && chown -R 1000:1000 /app
 
