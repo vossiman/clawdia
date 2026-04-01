@@ -14,6 +14,8 @@ Cloud-first architecture: heavy compute (STT, LLM) runs via cloud APIs while the
 - **Conversation history** for context-aware follow-up commands
 - **Interaction logging** to SQLite for analytics and debugging
 - **Knowledge base** that learns from corrections and user preferences
+- **Startup health checks** with auto-recovery for stale Spotify sessions
+- **Typing indicators** in Telegram while processing commands
 
 ## Quick Start
 
@@ -47,10 +49,11 @@ Edit `.env` with your API keys:
 docker compose up -d --build
 ```
 
-The container needs access to:
+The container runs as uid 1000 (matching the Pi user) and needs access to:
 - `/dev/lirc0`, `/dev/lirc1` — IR transmitter/receiver
 - `/dev/snd` — Audio devices
 - Host network — for Spotify Connect (librespot)
+- Systemd/dbus user sockets — for restarting librespot on stale sessions
 
 ### 3. Deploy to Raspberry Pi
 
@@ -154,7 +157,38 @@ Input ──> [Voice / Telegram] ──> Brain (PydanticAI + OpenRouter)
 | Telegram Bot | `src/clawdia/telegram_bot/` | Message handling, slash commands, notifications |
 | Voice | `src/clawdia/voice/` | Wake word (openWakeWord) + STT (Whisper) |
 | Playback Coordinator | `src/clawdia/playback/` | Prevents multiple audio sources playing at once |
+| Health Checks | `src/clawdia/health.py` | Startup verification, Spotify auto-recovery |
 | Interaction Logger | `src/clawdia/logger_db.py` | SQLite logging of all interactions |
+
+### Startup Health Checks
+
+On startup, Clawdia verifies all services before sending the "online" notification:
+
+- **Spotify devices** — checks each librespot device is visible via the Spotify API. If a device is missing (stale session), Clawdia automatically restarts the corresponding `librespot-*` systemd service and retries.
+- **IR device** — verifies `/dev/lirc0` exists.
+- **PC remote control** — skipped at startup (on-demand by nature, PC may be off).
+
+The Telegram notification reflects the result:
+- "Clawdia is online! All systems go." — everything checked out
+- "Clawdia is online with issues: ..." — lists what's wrong
+
+### Spotify Auto-Recovery
+
+Librespot sessions can go stale (`SESSION_DELETED`) after periods of inactivity. When this happens, the Spotify API returns no devices and playback commands fail.
+
+Clawdia handles this automatically:
+1. When any music command can't find the Spotify device, it triggers auto-recovery
+2. The corresponding `librespot-<name>` systemd user service is restarted
+3. After a short wait, the device lookup is retried
+4. If recovery succeeds, the original command proceeds transparently
+
+This also runs at startup — so a deploy or restart won't leave you with broken Spotify.
+
+The container runs as uid 1000 (matching the host user) with the systemd and dbus sockets mounted, so `systemctl --user restart librespot-*` works natively from inside Docker.
+
+### Typing Indicator
+
+While processing any command, the Telegram bot shows a "typing..." indicator that refreshes every 4 seconds. For long-running operations like `computer_use` (which can take 60+ seconds), a progress message is also sent: "Working on it, this may take a minute..."
 
 ### Interaction Logging
 
@@ -209,6 +243,7 @@ clawdia/
 │   ├── telegram_bot/     # Telegram bot handlers
 │   ├── voice/            # Wake word + STT
 │   ├── config.py         # Settings (pydantic-settings)
+│   ├── health.py         # Startup checks + Spotify auto-recovery
 │   ├── logger_db.py      # SQLite interaction logger
 │   ├── main.py           # Entry point
 │   └── orchestrator.py   # Unified action router
