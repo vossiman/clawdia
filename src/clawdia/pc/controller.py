@@ -61,11 +61,19 @@ class PCController:
             logger.exception("SSH command failed")
             return PCResult(success=False, output=str(e))
 
+        out_text = stdout.decode().strip()
+        err_text = stderr.decode().strip()
+        logger.info(
+            "SSH result: exit_code=%d stdout=%s stderr=%s",
+            process.returncode,
+            out_text[:500] if out_text else "(empty)",
+            err_text[:500] if err_text else "(empty)",
+        )
+
         if process.returncode == 0:
-            return PCResult(success=True, output=stdout.decode().strip())
+            return PCResult(success=True, output=out_text)
         else:
-            error = stderr.decode().strip() or stdout.decode().strip()
-            return PCResult(success=False, output=error)
+            return PCResult(success=False, output=err_text or out_text)
 
     async def run_shell(self, command: str) -> PCResult:
         """Run a shell command on the remote PC.

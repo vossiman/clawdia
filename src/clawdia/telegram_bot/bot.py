@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import telegram
 from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -17,8 +18,7 @@ if TYPE_CHECKING:
     from clawdia.brain import Brain
     from clawdia.ir import IRController
     from clawdia.music import MusicController
-    from clawdia.pc.controller import PCController
-    from clawdia.pc.knowledge import KnowledgeBase
+    from clawdia.orchestrator import Orchestrator
     from clawdia.playback import PlaybackCoordinator
 
 logger = logging.getLogger(__name__)
@@ -34,8 +34,6 @@ class ClawdiaTelegramBot:
         brain: Brain,
         ir: IRController | None = None,
         music: MusicController | None = None,
-        pc: PCController | None = None,
-        knowledge: KnowledgeBase | None = None,
         music_controllers: dict[int, MusicController] | None = None,
         coordinator: PlaybackCoordinator | None = None,
     ):
@@ -44,12 +42,15 @@ class ClawdiaTelegramBot:
         self.brain = brain
         self.ir = ir
         self.music = music
-        self.pc = pc
-        self.knowledge = knowledge
         self.music_controllers = music_controllers or {}
         self.coordinator = coordinator
         self._bot = telegram.Bot(token=token)
         self._app: Application | None = None
+        self._orchestrator: Orchestrator | None = None
+
+    def set_orchestrator(self, orchestrator: Orchestrator) -> None:
+        """Set the orchestrator reference (called after both are constructed)."""
+        self._orchestrator = orchestrator
 
     def _get_music(self, chat_id: int) -> MusicController | None:
         """Get the music controller for a chat, falling back to the default."""
@@ -317,103 +318,35 @@ class ClawdiaTelegramBot:
         )
 
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle text messages - send to brain for processing."""
+        """Handle text messages - delegate to orchestrator."""
         if not self._is_allowed(update.effective_chat.id):
             await update.message.reply_text("Sorry, you're not authorized.")
             return
 
         text = update.message.text
+        chat_id = update.effective_chat.id
         logger.info("Telegram message received: %s", text)
 
-        try:
-            response = await self.brain.process(text, context_id=str(update.effective_chat.id))
-        except Exception:
-            logger.exception("Error processing message")
-            await update.message.reply_text("Sorry, something went wrong.")
+        if not self._orchestrator:
+            await update.message.reply_text("Sorry, I'm not fully initialized yet.")
             return
 
-        if response.action == "ir" and response.ir and self.ir:
-            if not self.ir.has_command(response.ir.command):
-                await update.message.reply_text(
-                    f"[IR: {response.ir.command}] not available. Record it with /record {response.ir.command}"
-                )
-                return
+        async def send_typing() -> None:
+            try:
+                await update.effective_chat.send_action(ChatAction.TYPING)
+            except Exception:
+                pass
 
-            success = await self.ir.send(
-                command=response.ir.command,
-                repeat=response.ir.repeat,
-            )
-            if success:
-                await update.message.reply_text(f"[IR: {response.ir.command} x{response.ir.repeat}] {response.message}")
-            else:
-                await update.message.reply_text(f"[IR: {response.ir.command}] Failed to send.")
-
-        elif response.action == "music" and response.music:
-            music = self._get_music(update.effective_chat.id)
-            if not music:
-                await update.message.reply_text("Music playback is not configured.")
-                return
-            from clawdia.orchestrator import MUSIC_DISPATCH
-            handler = MUSIC_DISPATCH.get(response.music.command)
-            if not handler:
-                await update.message.reply_text(f"Unknown music command: {response.music.command}")
-                return
-            chat_id = update.effective_chat.id
-            is_playback_cmd = response.music.command in ("play", "play_query", "play_playlist")
-            if self.coordinator and is_playback_cmd:
-                result = await self.coordinator.play(
-                    service=f"spotify:{chat_id}",
-                    source="telegram",
-                    user_chat_id=chat_id,
-                    callback=lambda: handler(music, response.music),
-                    description=response.music.query or "music",
-                )
-            elif self.coordinator and response.music.command == "pause":
-                result = await handler(music, response.music)
-                await self.coordinator.stop(f"spotify:{chat_id}")
-            else:
-                result = await handler(music, response.music)
-            if isinstance(result, list):
-                if not result:
-                    await update.message.reply_text("No results found.")
-                else:
-                    lines = [
-                        f"• {r['name']} — {r.get('artists', '')}" if "artists" in r else f"• {r['name']}"
-                        for r in result
-                    ]
-                    await update.message.reply_text("\n".join(lines))
-            else:
-                await update.message.reply_text(result)
-
-        elif response.action == "pc" and response.pc and self.pc:
-            if response.pc.command_type == "shell" and response.pc.shell_command:
-                result = await self.pc.run_shell(response.pc.shell_command)
-            elif response.pc.command_type == "computer_use" and response.pc.goal:
-                knowledge_ctx = self.knowledge.to_prompt_context() if self.knowledge else ""
-                result = await self.pc.run_computer_use(response.pc.goal, knowledge_ctx)
-            else:
-                await update.message.reply_text("Invalid PC command.")
-                return
-
-            if result.success:
-                await update.message.reply_text(f"[PC] {response.message}")
-            else:
-                await update.message.reply_text(f"[PC] Failed: {result.output}")
-
-        elif response.action == "learn" and response.learn:
-            if self.knowledge:
-                learn = response.learn
-                if learn.section == "preferences":
-                    self.knowledge.add_preference(str(learn.value))
-                elif learn.section == "corrections":
-                    self.knowledge.add_correction(learn.key, str(learn.value))
-                else:
-                    self.knowledge.update(learn.section, learn.key, learn.value)
-                self.brain.reload_commands(pc_knowledge=self.knowledge.to_prompt_context())
-            await update.message.reply_text(response.message)
-
-        else:
-            await update.message.reply_text(response.message)
+        await self._orchestrator.handle_text_command(
+            text,
+            reply=update.message.reply_text,
+            context_id=str(chat_id),
+            music_override=self._get_music(chat_id),
+            source="telegram",
+            on_typing=send_typing,
+            on_progress=update.message.reply_text,
+            chat_id=chat_id,
+        )
 
     async def start(self) -> None:
         """Start the Telegram bot (non-blocking, uses polling)."""

@@ -58,16 +58,20 @@ Clawdia is an open-source Raspberry Pi voice assistant with IR TV remote control
                           +--------------------------------------+
 ```
 
-## Services (Docker Compose)
+## Components
 
-| Service | Purpose | Local/Cloud |
-|---------|---------|-------------|
-| `wakeword` | Listens for "Hey Clawdia" via openWakeWord | Local |
-| `orchestrator` | Coordinates pipeline: capture -> STT -> brain -> action | Local |
-| `brain` | PydanticAI intent engine, calls LLM via OpenRouter | Cloud call |
-| `ir` | IR send/receive via ir-ctl, internal REST API | Local |
-| `telegram-bot` | Clawdia's own Telegram bot for status/responses + receiving commands | Cloud call |
-| `openclaw-poller` | (Future) Polls OpenClawd VPS for remote commands | Cloud call |
+> **Note:** Originally designed as separate Docker services. Implementation runs as a single container with all components in one Python package.
+
+| Component | Module | Local/Cloud |
+|-----------|--------|-------------|
+| Wake word listener | `clawdia.voice.listener` | Local |
+| Orchestrator | `clawdia.orchestrator` | Local |
+| Brain (intent engine) | `clawdia.brain` | Cloud call (OpenRouter) |
+| IR Controller | `clawdia.ir` | Local (ir-ctl) |
+| Telegram Bot | `clawdia.telegram_bot` | Cloud call |
+| Music Controller | `clawdia.music` | Cloud call (Spotify API) |
+| PC Controller | `clawdia.pc` | LAN (SSH) |
+| Interaction Logger | `clawdia.logger_db` | Local (SQLite) |
 
 ## Data Flow
 
@@ -176,52 +180,63 @@ Train "Hey Clawdia" for openWakeWord:
 
 ## Project Structure
 
+> **Note:** The original design proposed separate microservices. Implementation uses a single Python package for simplicity — all components run in one Docker container.
+
 ```
 clawdia/
 ├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
 ├── .env.example                # Template for API keys
 ├── .env                        # Actual API keys (gitignored)
-├── services/
-│   ├── wakeword/
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   └── main.py             # openWakeWord listener + audio capture
-│   ├── orchestrator/
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   └── main.py             # Pipeline coordinator
-│   ├── brain/
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── agent.py            # PydanticAI agent definition
-│   │   ├── tools.py            # Available tools/commands for the agent
-│   │   └── main.py             # FastAPI service wrapping the agent
-│   ├── ir/
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── main.py             # FastAPI IR control service
-│   │   └── codes/              # Recorded IR code files (.txt)
-│   └── telegram-bot/
-│       ├── Dockerfile
-│       ├── requirements.txt
-│       └── main.py             # Telegram bot for notifications + commands
-├── scripts/
-│   ├── record-ir.sh            # Helper to record IR codes interactively
-│   └── train-wakeword.py       # Wake word model training script
+├── src/clawdia/
+│   ├── main.py                 # Entry point, component init
+│   ├── config.py               # Settings via pydantic-settings
+│   ├── orchestrator.py         # Unified action router for all inputs
+│   ├── logger_db.py            # SQLite interaction logging
+│   ├── brain/                  # PydanticAI intent engine
+│   │   ├── __init__.py         # Brain class with conversation history
+│   │   ├── agent.py            # Agent factory with dynamic system prompt
+│   │   └── models.py           # Structured response models
+│   ├── ir/                     # IR send/receive via ir-ctl
+│   │   └── controller.py
+│   ├── music/                  # Spotify integration via spotipy
+│   │   └── controller.py
+│   ├── pc/                     # PC remote control via SSH
+│   │   ├── controller.py       # Shell + computer_use execution
+│   │   └── knowledge.py        # YAML knowledge base
+│   ├── pc_agent/               # Computer use agent (screenshot loop)
+│   │   ├── agent.py            # Claude-powered GUI automation
+│   │   └── actions.py          # Screenshot, click, type, key actions
+│   ├── playback/               # Playback coordination
+│   │   └── coordinator.py      # Prevents multiple audio sources
+│   ├── telegram_bot/           # Telegram bot
+│   │   └── bot.py              # Slash commands + message delegation
+│   └── voice/                  # Voice input
+│       ├── listener.py         # openWakeWord wake word detection
+│       └── stt.py              # OpenAI Whisper transcription
+├── ir-codes/                   # Recorded IR pulse/space files
+├── pc_knowledge.yaml           # Learned PC facts
 ├── docs/
-│   └── plans/
-│       └── 2026-02-23-clawdia-design.md
 └── tests/
 ```
 
-## API Keys Required
+## API Keys & Configuration
+
+See `.env.example` for the full list. Key variables:
 
 | Key | Service | Purpose |
 |-----|---------|---------|
 | `OPENROUTER_API_KEY` | OpenRouter | LLM calls for intent processing |
-| `OPENAI_API_KEY` | OpenAI | Whisper STT API |
+| `OPENROUTER_MODEL` | OpenRouter | Model selection (default: `anthropic/claude-haiku-4.5`) |
+| `OPENAI_API_KEY` | OpenAI | Whisper STT API (optional, voice only) |
 | `TELEGRAM_BOT_TOKEN` | Telegram BotFather | Clawdia's own Telegram bot |
-| `TELEGRAM_CHAT_ID` | Telegram | Your chat ID for notifications |
+| `TELEGRAM_CHAT_IDS` | Telegram | Comma-separated allowed chat IDs |
+| `SPOTIFY_CLIENT_ID` | Spotify | Music playback (optional) |
+| `SPOTIFY_CLIENT_SECRET` | Spotify | Music playback (optional) |
+| `SPOTIFY_USERS` | Spotify | Multi-user: `chat_id:cache:device,...` |
+| `PC_SSH_HOST` | SSH | PC remote control target (optional) |
+| `PC_SSH_USER` | SSH | PC remote control user (optional) |
 
 ## Security Considerations
 

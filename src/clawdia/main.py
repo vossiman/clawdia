@@ -10,6 +10,7 @@ load_dotenv()
 from clawdia.config import settings  # noqa: E402
 from clawdia.brain import Brain  # noqa: E402
 from clawdia.ir import IRController  # noqa: E402
+from clawdia.logger_db import InteractionLogger  # noqa: E402
 from clawdia.music import MusicController  # noqa: E402
 from clawdia.orchestrator import Orchestrator  # noqa: E402
 from clawdia.playback import PlaybackCoordinator  # noqa: E402
@@ -104,14 +105,16 @@ async def run() -> None:
     chat_ids = {int(x.strip()) for x in settings.telegram_chat_ids.split(",") if x.strip()}
     logger.info("Allowed Telegram chat IDs: %s", chat_ids)
 
+    # Interaction logger
+    interaction_logger = InteractionLogger()
+    await interaction_logger.init_db()
+
     telegram = ClawdiaTelegramBot(
         token=settings.telegram_bot_token,
         chat_ids=chat_ids,
         brain=brain,
         ir=ir,
         music=music,
-        pc=pc,
-        knowledge=knowledge,
         music_controllers=music_controllers or None,
         coordinator=coordinator,
     )
@@ -134,7 +137,11 @@ async def run() -> None:
         pc=pc,
         knowledge=knowledge,
         coordinator=coordinator,
+        interaction_logger=interaction_logger,
     )
+
+    # Wire orchestrator into telegram bot
+    telegram.set_orchestrator(orchestrator)
 
     # Start services
     await telegram.start()

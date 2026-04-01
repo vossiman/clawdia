@@ -38,7 +38,7 @@ async def test_handle_ir_command(orchestrator, mock_brain, mock_ir, mock_telegra
 
     await orchestrator.handle_text_command("Turn off the TV")
 
-    mock_brain.process.assert_called_once_with("Turn off the TV")
+    mock_brain.process.assert_called_once_with("Turn off the TV", context_id="default")
     mock_ir.send.assert_called_once_with(command="power", repeat=1)
     mock_telegram.notify.assert_called_once_with("Turning off the TV")
 

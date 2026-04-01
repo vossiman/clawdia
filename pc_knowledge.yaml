@@ -1,3 +1,18 @@
 # Clawdia PC Knowledge Base
 # This file is updated automatically when you correct Clawdia.
 # You can also edit it manually.
+
+pc:
+  browser: firefox
+  streaming_platform: twitch
+  display: ":0"
+
+services:
+  twitch:
+    url_pattern: "https://www.twitch.tv/{channel}"
+    fullscreen_key: F11
+
+preferences:
+  - Use xdotool for keyboard shortcuts when possible (faster than computer_use)
+  - When switching Twitch channels, open the URL directly in Firefox instead of navigating the UI
+  - Use shell commands over computer_use for simple actions like fullscreen toggle
