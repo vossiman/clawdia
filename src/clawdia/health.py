@@ -102,20 +102,9 @@ async def startup_health_check(
                 logger.error(msg)
                 issues.append(msg)
 
-    # Check PC reachability
+    # PC check skipped — on-demand by nature, PC may be off at startup
     if pc:
-        try:
-            result = await pc.run_shell("echo ok")
-            if result.success and "ok" in result.output:
-                logger.info("PC remote control: OK")
-            else:
-                msg = f"PC remote control: unreachable ({result.output})"
-                logger.error(msg)
-                issues.append(msg)
-        except Exception as e:
-            msg = f"PC remote control: error ({e})"
-            logger.error(msg)
-            issues.append(msg)
+        logger.info("PC remote control: configured (checked on demand)")
 
     # Check IR device
     if ir:
