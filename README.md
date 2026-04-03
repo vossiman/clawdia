@@ -101,6 +101,36 @@ Say the wake word ("Hey Jarvis") and then speak your command. Clawdia captures 5
 
 Requires the voice extras: `pip install clawdia[voice]`
 
+### Testing
+
+Clawdia uses three separate validation layers so hosted CI does not pretend to be Raspberry Pi hardware:
+
+- **Standard hosted CI**: installs base dependencies plus `dev` tooling only. This runs Ruff, Pyright, and the main pytest suite without compiling microphone-specific native packages.
+- **Hosted voice smoke**: installs Linux audio headers plus the `voice` extra, then checks that voice modules import and that non-hardware voice tests pass.
+- **Pi hardware validation**: any real microphone or device-level tests should run on the Raspberry Pi, not on GitHub-hosted Ubuntu.
+
+Standard local verification:
+
+```bash
+uv sync --extra dev
+uv run ruff check .
+uv run ruff format --check .
+uv run pyright
+uv run pytest -m "not hardware and not pi"
+```
+
+Hosted voice smoke equivalent:
+
+```bash
+sudo apt-get install -y portaudio19-dev
+uv sync --extra dev --extra voice
+uv run pytest tests/test_listener.py tests/test_stt.py -v
+```
+
+`pyaudio` depends on PortAudio headers, so the voice smoke lane installs `portaudio19-dev` explicitly. The standard CI jobs intentionally do not install `clawdia[voice]`; that keeps linting, type checking, and unit tests focused on application logic instead of native audio build requirements.
+
+If you add true hardware coverage later, mark those tests with `@pytest.mark.hardware` or `@pytest.mark.pi` so they stay out of normal hosted CI.
+
 ### PC Remote Control
 
 Clawdia can control a Linux PC via SSH. Two modes:

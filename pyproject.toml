@@ -47,6 +47,10 @@ packages = ["src/clawdia"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "hardware: requires native hardware or attached peripherals",
+    "pi: requires execution on the Raspberry Pi environment",
+]
 addopts = [
     "--cov=clawdia",
     "--cov-report=term-missing",
