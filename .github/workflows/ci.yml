@@ -84,4 +84,4 @@ jobs:
         run: .venv/bin/python -c "from clawdia.voice.listener import WakeWordListener; from clawdia.voice.stt import SpeechToText; print('ok')"
 
       - name: Voice pytest smoke
-        run: .venv/bin/pytest tests/test_listener.py tests/test_stt.py -v
+        run: .venv/bin/pytest --no-cov tests/test_listener.py tests/test_stt.py -v
