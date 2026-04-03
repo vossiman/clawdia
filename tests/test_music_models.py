@@ -1,4 +1,5 @@
 import pytest
+
 from clawdia.brain.models import ClawdiaResponse, MusicAction
 
 
@@ -38,6 +39,7 @@ def test_music_response_requires_music_field():
 
 def test_ir_response_still_works():
     from clawdia.brain.models import IRAction
+
     r = ClawdiaResponse(
         action="ir",
         ir=IRAction(command="power"),

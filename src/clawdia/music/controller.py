@@ -56,6 +56,7 @@ class MusicController:
 
         if auto_recover:
             from clawdia.health import ensure_spotify_device
+
             logger.warning("Device '{}' not found, attempting auto-recovery", self._device_name)
             recovered = await ensure_spotify_device(self, self._device_name)
             if recovered:
@@ -81,11 +82,15 @@ class MusicController:
                     return True
             logger.warning(
                 "Playback not active on {} after attempt {}/{}",
-                self._device_name, attempt + 1, max_retries,
+                self._device_name,
+                attempt + 1,
+                max_retries,
             )
         return False
 
-    async def _start_with_retry(self, device_id: str, max_retries: int = 2, **play_kwargs) -> bool:
+    async def _start_with_retry(
+        self, device_id: str, *, max_retries: int = 2, **play_kwargs
+    ) -> bool:
         """Send start_playback and verify it took effect, retrying if needed."""
         for attempt in range(1, max_retries + 1):
             await self._run(self._sp.start_playback, device_id=device_id, **play_kwargs)
@@ -93,7 +98,9 @@ class MusicController:
                 return True
             logger.warning(
                 "Retrying start_playback on {} (attempt {}/{})",
-                self._device_name, attempt, max_retries,
+                self._device_name,
+                attempt,
+                max_retries,
             )
         return False
 
@@ -102,8 +109,12 @@ class MusicController:
         device_id = await self._get_device_id()
         if not device_id:
             return f"Spotify device '{self._device_name}' not found or offline."
-        play_kwargs = {"uris": [uri]} if uri else {}
-        if await self._start_with_retry(device_id, **play_kwargs):
+        started = (
+            await self._start_with_retry(device_id, uris=[uri])
+            if uri
+            else await self._start_with_retry(device_id)
+        )
+        if started:
             return f"Playing on {self._device_name}." if uri else "Resuming playback."
         return f"Playback command sent but {self._device_name} did not start. The device may need to be restarted."
 
@@ -216,7 +227,4 @@ class MusicController:
     async def list_playlists(self) -> list[dict]:
         """List user's playlists. Returns list of {name, uri}."""
         playlists = await self._run(self._sp.current_user_playlists, limit=50)
-        return [
-            {"name": pl["name"], "uri": pl["uri"]}
-            for pl in playlists.get("items", [])
-        ]
+        return [{"name": pl["name"], "uri": pl["uri"]} for pl in playlists.get("items", [])]

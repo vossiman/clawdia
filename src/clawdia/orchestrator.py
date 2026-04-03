@@ -64,7 +64,10 @@ class Orchestrator:
         self.interaction_logger = interaction_logger
 
     async def _handle_music(
-        self, action: MusicAction, music: MusicController, chat_id: int | None = None,
+        self,
+        action: MusicAction,
+        music: MusicController,
+        chat_id: int | None = None,
     ) -> str:
         """Dispatch a music action to the controller."""
         handler = MUSIC_DISPATCH.get(action.command)
@@ -119,6 +122,7 @@ class Orchestrator:
         # Start typing indicator loop
         typing_task: asyncio.Task | None = None
         if on_typing:
+
             async def _typing_loop() -> None:
                 try:
                     while True:
@@ -126,6 +130,7 @@ class Orchestrator:
                         await asyncio.sleep(4)
                 except asyncio.CancelledError:
                     pass
+
             typing_task = asyncio.create_task(_typing_loop())
 
         start_time = time.monotonic()
@@ -147,7 +152,9 @@ class Orchestrator:
 
             if response.action == "ir" and response.ir:
                 if not self.ir.has_command(response.ir.command):
-                    response_msg = f"IR command '{response.ir.command}' not available. Record it first."
+                    response_msg = (
+                        f"IR command '{response.ir.command}' not available. Record it first."
+                    )
                     logger.warning(response_msg)
                     await send(response_msg)
                     success = False

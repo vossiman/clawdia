@@ -37,11 +37,13 @@ class KnowledgeBase:
     def add_correction(self, trigger: str, learned: str) -> None:
         if "corrections" not in self.data:
             self.data["corrections"] = []
-        self.data["corrections"].append({
-            "trigger": trigger,
-            "learned": learned,
-            "date": str(date.today()),
-        })
+        self.data["corrections"].append(
+            {
+                "trigger": trigger,
+                "learned": learned,
+                "date": str(date.today()),
+            }
+        )
         self._save()
 
     def to_prompt_context(self) -> str:

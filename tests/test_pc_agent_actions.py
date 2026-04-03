@@ -1,10 +1,10 @@
 from unittest.mock import AsyncMock, patch
 
 from clawdia.pc_agent.actions import (
-    take_screenshot,
     click,
-    type_text,
     press_key,
+    take_screenshot,
+    type_text,
 )
 
 

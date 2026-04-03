@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from clawdia.music.controller import MusicController
 
@@ -43,10 +44,16 @@ def _current_playback(track="Chill Vibes", artist="DJ Test"):
 async def test_play_query(controller, mock_spotify):
     mock_spotify.devices.return_value = _device_list()
     mock_spotify.search.return_value = {
-        "tracks": {"items": [{"uri": "spotify:track:123", "name": "Jazz Song", "artists": [{"name": "Artist"}]}]}
+        "tracks": {
+            "items": [
+                {"uri": "spotify:track:123", "name": "Jazz Song", "artists": [{"name": "Artist"}]}
+            ]
+        }
     }
     result = await controller.play_query("jazz")
-    mock_spotify.start_playback.assert_called_once_with(device_id="dev123", uris=["spotify:track:123"])
+    mock_spotify.start_playback.assert_called_once_with(
+        device_id="dev123", uris=["spotify:track:123"]
+    )
     assert "Jazz Song" in result
 
 
@@ -97,7 +104,9 @@ async def test_play_playlist(controller, mock_spotify):
         "items": [{"name": "Chill Mix", "uri": "spotify:playlist:abc"}],
     }
     result = await controller.play_playlist("chill")
-    mock_spotify.start_playback.assert_called_once_with(device_id="dev123", context_uri="spotify:playlist:abc")
+    mock_spotify.start_playback.assert_called_once_with(
+        device_id="dev123", context_uri="spotify:playlist:abc"
+    )
     assert "Chill Mix" in result
 
 
@@ -110,7 +119,11 @@ async def test_play_playlist_not_found(controller, mock_spotify):
 async def test_queue_track(controller, mock_spotify):
     mock_spotify.devices.return_value = _device_list()
     mock_spotify.search.return_value = {
-        "tracks": {"items": [{"uri": "spotify:track:456", "name": "Queue Song", "artists": [{"name": "Artist"}]}]}
+        "tracks": {
+            "items": [
+                {"uri": "spotify:track:456", "name": "Queue Song", "artists": [{"name": "Artist"}]}
+            ]
+        }
     }
     result = await controller.queue_track("queue song")
     mock_spotify.add_to_queue.assert_called_once_with("spotify:track:456", device_id="dev123")
@@ -119,10 +132,12 @@ async def test_queue_track(controller, mock_spotify):
 
 async def test_search(controller, mock_spotify):
     mock_spotify.search.return_value = {
-        "tracks": {"items": [
-            {"name": "Track 1", "artists": [{"name": "A1"}], "uri": "spotify:track:1"},
-            {"name": "Track 2", "artists": [{"name": "A2"}], "uri": "spotify:track:2"},
-        ]}
+        "tracks": {
+            "items": [
+                {"name": "Track 1", "artists": [{"name": "A1"}], "uri": "spotify:track:1"},
+                {"name": "Track 2", "artists": [{"name": "A2"}], "uri": "spotify:track:2"},
+            ]
+        }
     }
     results = await controller.search("test")
     assert len(results) == 2
@@ -162,7 +177,7 @@ def _device_list_inactive(name="clawdia"):
 async def test_play_retries_when_device_not_active(controller, mock_spotify):
     """When start_playback succeeds but device stays inactive, retry and report failure."""
     mock_spotify.devices.side_effect = [
-        _device_list(),           # _get_device_id
+        _device_list(),  # _get_device_id
         _device_list_inactive(),  # verify attempt 1
         _device_list_inactive(),  # retry: verify attempt 2
         _device_list_inactive(),  # retry: verify attempt 1
@@ -176,10 +191,10 @@ async def test_play_retries_when_device_not_active(controller, mock_spotify):
 async def test_play_succeeds_on_retry(controller, mock_spotify):
     """When first play attempt fails but retry succeeds."""
     mock_spotify.devices.side_effect = [
-        _device_list(),           # _get_device_id
+        _device_list(),  # _get_device_id
         _device_list_inactive(),  # verify attempt 1
         _device_list_inactive(),  # verify attempt 2
-        _device_list(),           # retry: verify attempt 1 — now active
+        _device_list(),  # retry: verify attempt 1 — now active
     ]
     result = await controller.play(uri="spotify:track:123")
     assert "playing" in result.lower()

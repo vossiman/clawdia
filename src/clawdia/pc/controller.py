@@ -31,9 +31,12 @@ class PCController:
     def _build_ssh_cmd(self, remote_cmd: str) -> list[str]:
         return [
             "ssh",
-            "-i", self.ssh_key_path,
-            "-o", "StrictHostKeyChecking=no",
-            "-o", "ConnectTimeout=5",
+            "-i",
+            self.ssh_key_path,
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "ConnectTimeout=5",
             f"{self.ssh_user}@{self.ssh_host}",
             f"DISPLAY=:0 {remote_cmd}",
         ]
@@ -48,10 +51,8 @@ class PCController:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=timeout
-            )
-        except asyncio.TimeoutError:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        except TimeoutError:
             process.kill()
             await process.wait()
             logger.error("SSH command timed out after {:.0f}s", timeout)
@@ -81,9 +82,25 @@ class PCController:
         for them to exit.
         """
         # Background GUI app launches so SSH returns immediately
-        gui_apps = {"firefox", "chromium", "google-chrome", "emby", "vlc", "mpv",
-                    "nautilus", "thunar", "nemo", "xdg-open", "libreoffice",
-                    "gimp", "inkscape", "code", "gedit", "xterm", "evince"}
+        gui_apps = {
+            "firefox",
+            "chromium",
+            "google-chrome",
+            "emby",
+            "vlc",
+            "mpv",
+            "nautilus",
+            "thunar",
+            "nemo",
+            "xdg-open",
+            "libreoffice",
+            "gimp",
+            "inkscape",
+            "code",
+            "gedit",
+            "xterm",
+            "evince",
+        }
         first_word = command.strip().split()[0].split("/")[-1] if command.strip() else ""
         if first_word in gui_apps and "nohup" not in command and "&" not in command:
             command = f"nohup {command} >/dev/null 2>&1 & sleep 0.5"
@@ -102,7 +119,9 @@ class PCController:
         if result.success:
             try:
                 data = json.loads(result.output)
-                return PCResult(success=data.get("success", False), output=data.get("summary", result.output))
+                return PCResult(
+                    success=data.get("success", False), output=data.get("summary", result.output)
+                )
             except json.JSONDecodeError:
                 return result
         return result

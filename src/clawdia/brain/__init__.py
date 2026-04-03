@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING
 
 from loguru import logger
+from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 
 from clawdia.brain.agent import create_agent
@@ -37,7 +37,13 @@ class Brain:
         self._coordinator = coordinator
         self._db = db
         self._history: dict[str, list[ModelMessage]] = {}
-        self.agent = create_agent(model=model, ir=ir, music=music, pc_enabled=pc_enabled, pc_knowledge=pc_knowledge)
+        self.agent: Agent[None, ClawdiaResponse] = create_agent(
+            model=model,
+            ir=ir,
+            music=music,
+            pc_enabled=pc_enabled,
+            pc_knowledge=pc_knowledge,
+        )
 
     async def load_history(self) -> None:
         """Load persisted conversation history from the database."""
@@ -63,8 +69,11 @@ class Brain:
         if pc_knowledge is not None:
             self._pc_knowledge = pc_knowledge
         self.agent = create_agent(
-            model=self._model, ir=self._ir, music=self._music,
-            pc_enabled=self._pc_enabled, pc_knowledge=self._pc_knowledge,
+            model=self._model,
+            ir=self._ir,
+            music=self._music,
+            pc_enabled=self._pc_enabled,
+            pc_knowledge=self._pc_knowledge,
         )
 
     def _trimmed_history(self, context_id: str, max_exchanges: int = 3) -> list[ModelMessage]:

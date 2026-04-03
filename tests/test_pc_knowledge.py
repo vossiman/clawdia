@@ -1,4 +1,5 @@
 import pytest
+
 from clawdia.pc.knowledge import KnowledgeBase
 
 
@@ -17,9 +18,7 @@ def test_load_empty(kb):
 
 
 def test_load_existing(kb_path):
-    kb_path.write_text(
-        "pc:\n  browser: firefox\nservices:\n  emby:\n    url: http://emby:8096\n"
-    )
+    kb_path.write_text("pc:\n  browser: firefox\nservices:\n  emby:\n    url: http://emby:8096\n")
     kb = KnowledgeBase(kb_path)
     context = kb.to_prompt_context()
     assert "firefox" in context

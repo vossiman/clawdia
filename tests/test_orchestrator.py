@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from clawdia.brain.models import ClawdiaResponse, IRAction
 from clawdia.orchestrator import Orchestrator

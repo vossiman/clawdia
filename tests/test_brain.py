@@ -11,23 +11,28 @@ MSGS_PER_EXCHANGE = 3
 
 
 async def test_brain_process_command():
-    model = TestModel(custom_output_args={
-        "action": "ir",
-        "ir": {"command": "vol_up"},
-        "message": "Turning volume up",
-    })
+    model = TestModel(
+        custom_output_args={
+            "action": "ir",
+            "ir": {"command": "vol_up"},
+            "message": "Turning volume up",
+        }
+    )
     brain = Brain(model=model)
     response = await brain.process("Turn the volume up")
     assert isinstance(response, ClawdiaResponse)
     assert response.action == "ir"
+    assert response.ir is not None
     assert response.ir.command == "vol_up"
 
 
 async def test_brain_history_accumulates():
-    model = TestModel(custom_output_args={
-        "action": "respond",
-        "message": "Hello!",
-    })
+    model = TestModel(
+        custom_output_args={
+            "action": "respond",
+            "message": "Hello!",
+        }
+    )
     brain = Brain(model=model)
     await brain.process("Hi", context_id="user1")
     assert len(brain._history["user1"]) == MSGS_PER_EXCHANGE
@@ -37,10 +42,12 @@ async def test_brain_history_accumulates():
 
 
 async def test_brain_history_context_isolation():
-    model = TestModel(custom_output_args={
-        "action": "respond",
-        "message": "Hi!",
-    })
+    model = TestModel(
+        custom_output_args={
+            "action": "respond",
+            "message": "Hi!",
+        }
+    )
     brain = Brain(model=model)
     await brain.process("Hello", context_id="user1")
     await brain.process("Hey", context_id="user2")
@@ -52,10 +59,12 @@ async def test_brain_history_context_isolation():
 
 
 async def test_brain_history_trimmed_to_3_exchanges():
-    model = TestModel(custom_output_args={
-        "action": "respond",
-        "message": "Ok",
-    })
+    model = TestModel(
+        custom_output_args={
+            "action": "respond",
+            "message": "Ok",
+        }
+    )
     brain = Brain(model=model)
     for i in range(5):
         await brain.process(f"Message {i}", context_id="test")
@@ -68,10 +77,12 @@ async def test_brain_history_trimmed_to_3_exchanges():
 
 
 async def test_brain_default_context_id():
-    model = TestModel(custom_output_args={
-        "action": "respond",
-        "message": "Hi!",
-    })
+    model = TestModel(
+        custom_output_args={
+            "action": "respond",
+            "message": "Hi!",
+        }
+    )
     brain = Brain(model=model)
     await brain.process("Hello")
     assert "default" in brain._history

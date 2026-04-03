@@ -4,38 +4,82 @@
 
 Whenever the user asks you to "check something", "verify something", or "see if something is working", you must check it on the Clawdia Raspberry Pi by SSHing in:
 
-```
+```bash
 ssh clawdia
 ```
 
-Do not check locally — always check on the Pi.
+Do not check locally for runtime behavior. Use the Pi.
 
 ## Deploying
 
 After code changes, deploy to the Pi:
+
 ```bash
 ssh clawdia "cd ~/clawdia && git pull && docker compose up -d --build"
 ```
 
-## Running Tests
+## Setup
+
+- Python: `>=3.11` (`pyproject.toml`)
+- Create the local environment and install dev tooling with:
 
 ```bash
-pytest tests/ -q
+uv venv
+uv sync --all-extras
 ```
 
-All 123 tests should pass. Tests use mocks — no hardware or API keys needed.
+- Run project commands with `uv run ...`, or activate `.venv` first.
+
+## Lint And Format
+
+```bash
+uv run ruff check .
+uv run ruff check . --fix
+uv run ruff format .
+uv run ruff format --check .
+```
+
+## Type Checking
+
+```bash
+uv run pyright
+```
+
+## Tests And Coverage
+
+```bash
+uv run pytest
+```
+
+The test suite currently enforces coverage via `pyproject.toml`.
+
+## Pre-commit
+
+```bash
+uv run pre-commit install
+uv run pre-commit run --all-files
+```
 
 ## Key Architecture Decisions
 
-- **Single action router**: All input sources (Telegram, voice) go through `Orchestrator.handle_text_command()`. Do NOT add action routing logic in the Telegram bot — it delegates to the orchestrator.
-- **Per-chat music controllers**: Telegram messages use per-user Spotify controllers via `music_override` parameter.
-- **Conversation history**: Brain maintains per-context history (trimmed to 3 exchanges). Telegram uses `chat_id` as context, voice uses `"default"`.
-- **Interaction logging**: All commands logged to `clawdia_interactions.db` via `InteractionLogger`. The orchestrator handles this automatically.
-- **Knowledge base**: PC facts in `pc_knowledge.yaml`, injected into the brain's system prompt.
+- **Single action router**: All input sources (Telegram, voice) go through `Orchestrator.handle_text_command()`. Do NOT add action routing logic in the Telegram bot.
+- **Per-chat music controllers**: Telegram messages use per-user Spotify controllers via `music_override`.
+- **Conversation history**: Brain maintains per-context history. Telegram uses `chat_id` as context, voice uses `"default"`.
+- **Interaction logging**: Commands are logged to `clawdia.db` via `InteractionLogger`.
+- **Knowledge base**: PC facts in `pc_knowledge.yaml`, injected into the brain prompt.
 
-## Environment
+## Key Files
 
-- Python 3.12+ (Docker uses 3.12-slim)
-- Dependencies managed via `pyproject.toml`
-- Config via `.env` file (pydantic-settings)
-- Docker Compose for deployment on Pi
+- `pyproject.toml`: dependencies, Ruff config, pytest config, coverage config, package metadata
+- `Dockerfile`: container build for the app and voice dependencies
+- `.pre-commit-config.yaml`: local git hooks for hygiene and Ruff
+- `pyrightconfig.json`: type-checker scope and `.venv` settings
+- `.github/workflows/ci.yml`: CI workflow for lint, type-check, and tests
+- `.github/workflows/renovate.yml`: Renovate automation workflow
+- `.env.example`: placeholder environment values for local `.env`
+
+## Secrets
+
+- Put real secrets in `.env` only.
+- Keep placeholders in `.env.example`.
+- `.env` is gitignored.

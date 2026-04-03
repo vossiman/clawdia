@@ -65,7 +65,9 @@ When the user corrects a previous action, extract the fact and store it:
 - value: the corrected information (string or dict)
 """
 
-MUSIC_ENABLED = "Music playback is available via Spotify. Use action=\"music\" for any music-related requests."
+MUSIC_ENABLED = (
+    'Music playback is available via Spotify. Use action="music" for any music-related requests.'
+)
 MUSIC_DISABLED = "Music playback is not currently configured."
 
 PC_ENABLED = """\
@@ -115,18 +117,28 @@ def create_agent(
     pc_enabled: bool = False,
     pc_knowledge: str = "",
     playback_state: str | None = None,
-) -> Agent:
+) -> Agent[None, ClawdiaResponse]:
     """Create the Clawdia PydanticAI agent."""
     if ir:
-        prompt = build_system_prompt(ir=ir, music=music, pc_enabled=pc_enabled, pc_knowledge=pc_knowledge, playback_state=playback_state)
+        prompt = build_system_prompt(
+            ir=ir,
+            music=music,
+            pc_enabled=pc_enabled,
+            pc_knowledge=pc_knowledge,
+            playback_state=playback_state,
+        )
     else:
         prompt = SYSTEM_PROMPT.format(
             ir_commands="No IR commands recorded yet.",
             music_section=MUSIC_ENABLED if music else MUSIC_DISABLED,
-            pc_section=PC_ENABLED.format(pc_knowledge=pc_knowledge or "No facts recorded yet.") if pc_enabled else PC_DISABLED,
+            pc_section=(
+                PC_ENABLED.format(pc_knowledge=pc_knowledge or "No facts recorded yet.")
+                if pc_enabled
+                else PC_DISABLED
+            ),
             playback_state=playback_state or "",
         )
-    return Agent(
+    return Agent[None, ClawdiaResponse](
         model,
         output_type=ClawdiaResponse,
         instructions=prompt,

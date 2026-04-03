@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -176,6 +176,7 @@ async def test_play_routes_through_coordinator():
     music.play_query.return_value = "Now playing: Song by Artist"
 
     from clawdia.playback import PlaybackCoordinator
+
     coordinator = PlaybackCoordinator()
     coordinator.register_service("spotify:12345", stop=music.pause)
 
@@ -201,6 +202,7 @@ async def test_pause_clears_coordinator_state():
     music.pause.return_value = "Paused."
 
     from clawdia.playback import PlaybackCoordinator
+
     coordinator = PlaybackCoordinator()
     coordinator.register_service("spotify:12345", stop=music.pause)
 
@@ -229,6 +231,7 @@ async def test_play_stops_other_users_playback():
     music_b.play_query.return_value = "Playing B"
 
     from clawdia.playback import PlaybackCoordinator
+
     coordinator = PlaybackCoordinator()
     coordinator.register_service("spotify:111", stop=music_a.pause)
     coordinator.register_service("spotify:222", stop=music_b.pause)

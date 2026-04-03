@@ -12,7 +12,9 @@ def main():
     parser = argparse.ArgumentParser(description="Clawdia PC Agent — Computer Use")
     parser.add_argument("--goal", required=True, help="The goal to accomplish")
     parser.add_argument("--context", default="", help="Knowledge base context")
-    parser.add_argument("--api-key", default=os.environ.get("ANTHROPIC_API_KEY", ""), help="Anthropic API key")
+    parser.add_argument(
+        "--api-key", default=os.environ.get("ANTHROPIC_API_KEY", ""), help="Anthropic API key"
+    )
     parser.add_argument("--model", default="claude-sonnet-4-6-20250514", help="Model to use")
     parser.add_argument("--max-iterations", type=int, default=30, help="Max iterations")
     args = parser.parse_args()

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 
 from loguru import logger
+
+if TYPE_CHECKING:
+    from clawdia.music import MusicController
 
 # Librespot systemd service name pattern: device "clawdia-gernot" -> service "librespot-gernot"
 _LIBRESPOT_PREFIX = "clawdia-"
@@ -12,7 +16,7 @@ _SERVICE_PREFIX = "librespot-"
 def _service_name_for_device(device_name: str) -> str | None:
     """Derive the systemd service name from a librespot device name."""
     if device_name.startswith(_LIBRESPOT_PREFIX):
-        suffix = device_name[len(_LIBRESPOT_PREFIX):]
+        suffix = device_name[len(_LIBRESPOT_PREFIX) :]
         return f"{_SERVICE_PREFIX}{suffix}"
     return None
 
@@ -27,7 +31,10 @@ async def _restart_librespot(device_name: str) -> bool:
     logger.info("Restarting {}.service for device '{}'", service, device_name)
     try:
         proc = await asyncio.create_subprocess_exec(
-            "systemctl", "--user", "restart", service,
+            "systemctl",
+            "--user",
+            "restart",
+            service,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -38,7 +45,7 @@ async def _restart_librespot(device_name: str) -> bool:
         else:
             logger.error("Failed to restart {}: {}", service, stderr.decode().strip())
             return False
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error("Timed out restarting {}", service)
         return False
     except Exception:
@@ -74,7 +81,9 @@ async def ensure_spotify_device(
 
         logger.warning(
             "Device '{}' still not visible after restart attempt {}/{}",
-            device_name, attempt, max_retries,
+            device_name,
+            attempt,
+            max_retries,
         )
 
     return False
@@ -82,7 +91,7 @@ async def ensure_spotify_device(
 
 async def startup_health_check(
     *,
-    music_controllers: dict[int, object] | None = None,
+    music_controllers: dict[int, MusicController] | None = None,
     pc=None,
     ir=None,
 ) -> list[str]:
@@ -108,6 +117,7 @@ async def startup_health_check(
     # Check IR device
     if ir:
         import os
+
         device_path = ir._device_send if hasattr(ir, "_device_send") else None
         if device_path and not os.path.exists(device_path):
             msg = f"IR device not found: {device_path}"

@@ -1,4 +1,6 @@
 import pytest
+from pydantic import ValidationError
+
 from clawdia.brain.models import ClawdiaResponse, IRAction
 
 
@@ -23,5 +25,5 @@ def test_text_response():
 
 
 def test_ir_response_requires_ir_field():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ClawdiaResponse(action="ir", message="oops")

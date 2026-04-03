@@ -94,6 +94,7 @@ async def test_ir_still_works_with_music():
     mock_music = AsyncMock()
 
     from clawdia.brain.models import IRAction
+
     response = ClawdiaResponse(
         action="ir",
         ir=IRAction(command="power"),

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import anthropic
 from loguru import logger
 
-from clawdia.pc_agent.actions import take_screenshot, click, type_text, press_key
+from clawdia.pc_agent.actions import click, press_key, take_screenshot, type_text
 
 MAX_ITERATIONS = 30
 
@@ -36,12 +36,12 @@ class ComputerUseAgent:
 
     async def _take_screenshot(self) -> bytes:
         result = await take_screenshot()
-        if not result.success:
+        if not result.success or result.data is None:
             raise RuntimeError(f"Screenshot failed: {result.error}")
         return result.data
 
     async def _call_api(self, messages: list, system: str) -> anthropic.types.Message:
-        return await self.client.messages.create(
+        return await self.client.messages.create(  # pyright: ignore[reportCallIssue]
             model=self.model,
             max_tokens=4096,
             system=system,
@@ -122,27 +122,33 @@ class ComputerUseAgent:
 
                 if isinstance(result_data, bytes):
                     result_b64 = base64.standard_b64encode(result_data).decode()
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_use.id,
-                        "content": [
-                            {
-                                "type": "image",
-                                "source": {
-                                    "type": "base64",
-                                    "media_type": "image/png",
-                                    "data": result_b64,
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": [
+                                {
+                                    "type": "image",
+                                    "source": {
+                                        "type": "base64",
+                                        "media_type": "image/png",
+                                        "data": result_b64,
+                                    },
                                 },
-                            },
-                        ],
-                    })
+                            ],
+                        }
+                    )
                 else:
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": tool_use.id,
-                        "content": str(result_data),
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": str(result_data),
+                        }
+                    )
 
             messages.append({"role": "user", "content": tool_results})
 
-        return AgentResult(success=False, summary="Reached max iterations without completing the goal.")
+        return AgentResult(
+            success=False, summary="Reached max iterations without completing the goal."
+        )

@@ -1,7 +1,8 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from clawdia.brain.models import ClawdiaResponse, PCAction, LearnAction
+import pytest
+
+from clawdia.brain.models import ClawdiaResponse, LearnAction, PCAction
 from clawdia.orchestrator import Orchestrator
 from clawdia.pc.controller import PCResult
 
@@ -44,8 +45,11 @@ def mock_knowledge():
 @pytest.fixture
 def orchestrator(mock_brain, mock_ir, mock_telegram, mock_pc, mock_knowledge):
     return Orchestrator(
-        brain=mock_brain, ir=mock_ir, telegram=mock_telegram,
-        pc=mock_pc, knowledge=mock_knowledge,
+        brain=mock_brain,
+        ir=mock_ir,
+        telegram=mock_telegram,
+        pc=mock_pc,
+        knowledge=mock_knowledge,
     )
 
 
@@ -78,7 +82,9 @@ async def test_handle_pc_shell_failure(orchestrator, mock_brain, mock_pc, mock_t
     assert "failed" in mock_telegram.notify.call_args[0][0].lower()
 
 
-async def test_handle_pc_computer_use(orchestrator, mock_brain, mock_pc, mock_telegram, mock_knowledge):
+async def test_handle_pc_computer_use(
+    orchestrator, mock_brain, mock_pc, mock_telegram, mock_knowledge
+):
     response = ClawdiaResponse(
         action="pc",
         pc=PCAction(command_type="computer_use", goal="play Stranger Things"),
@@ -95,16 +101,22 @@ async def test_handle_pc_computer_use(orchestrator, mock_brain, mock_pc, mock_te
 async def test_handle_learn_action(orchestrator, mock_brain, mock_telegram, mock_knowledge):
     response = ClawdiaResponse(
         action="learn",
-        learn=LearnAction(section="services", key="emby", value={"url": "http://192.168.1.50:8096"}),
+        learn=LearnAction(
+            section="services", key="emby", value={"url": "http://192.168.1.50:8096"}
+        ),
         message="Got it, I'll remember that Emby is at 192.168.1.50:8096",
     )
     mock_brain.process.return_value = response
 
     await orchestrator.handle_text_command("emby is at 192.168.1.50:8096")
 
-    mock_knowledge.update.assert_called_once_with("services", "emby", {"url": "http://192.168.1.50:8096"})
+    mock_knowledge.update.assert_called_once_with(
+        "services", "emby", {"url": "http://192.168.1.50:8096"}
+    )
     mock_brain.reload_commands.assert_called_once()
-    mock_telegram.notify.assert_called_once_with("Got it, I'll remember that Emby is at 192.168.1.50:8096")
+    mock_telegram.notify.assert_called_once_with(
+        "Got it, I'll remember that Emby is at 192.168.1.50:8096"
+    )
 
 
 async def test_handle_pc_without_controller(mock_brain, mock_ir, mock_telegram):

@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from clawdia.orchestrator import Orchestrator
     from clawdia.playback import PlaybackCoordinator
 
+
 class ClawdiaTelegramBot:
     """Telegram bot for Clawdia - receives commands, sends notifications."""
 
@@ -56,6 +57,18 @@ class ClawdiaTelegramBot:
     def _is_allowed(self, chat_id: int) -> bool:
         return chat_id in self.chat_ids
 
+    def _require_message(self, update: Update) -> telegram.Message:
+        message = update.message
+        if message is None:
+            raise RuntimeError("Telegram update has no message")
+        return message
+
+    def _require_chat(self, update: Update) -> telegram.Chat:
+        chat = update.effective_chat
+        if chat is None:
+            raise RuntimeError("Telegram update has no chat")
+        return chat
+
     async def notify(self, text: str) -> None:
         """Send a notification message to all allowed chats."""
         for chat_id in self.chat_ids:
@@ -86,7 +99,10 @@ class ClawdiaTelegramBot:
 
     async def _handle_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command."""
-        await update.message.reply_text(
+        message = update.message
+        if message is None:
+            return
+        await message.reply_text(
             "Hi! I'm Clawdia, your home assistant.\n\n"
             "Send me a message and I'll process it.\n"
             "Use /ir to see available IR commands.\n"
@@ -96,7 +112,8 @@ class ClawdiaTelegramBot:
 
     async def _handle_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /help command."""
-        await update.message.reply_text(
+        message = self._require_message(update)
+        await message.reply_text(
             "Available commands:\n\n"
             "General:\n"
             "  /help - Show this message\n"
@@ -117,29 +134,35 @@ class ClawdiaTelegramBot:
 
     async def _handle_ir_list(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /ir command - list available IR commands."""
+        message = self._require_message(update)
         if not self.ir:
-            await update.message.reply_text("IR controller not configured.")
+            await message.reply_text("IR controller not configured.")
             return
         commands = self.ir.list_commands()
         if commands:
-            await update.message.reply_text("Available IR commands:\n" + "\n".join(f"• {c}" for c in commands))
+            await message.reply_text(
+                "Available IR commands:\n" + "\n".join(f"• {c}" for c in commands)
+            )
         else:
-            await update.message.reply_text("No IR commands recorded yet. Use /record <name> to record one.")
+            await message.reply_text(
+                "No IR commands recorded yet. Use /record <name> to record one."
+            )
 
     async def _handle_record(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /record <name> <description> - record an IR code from the receiver."""
-        if not self._is_allowed(update.effective_chat.id):
-            await update.message.reply_text("Sorry, you're not authorized.")
+        message = self._require_message(update)
+        chat_id = self._require_chat(update).id
+        if not self._is_allowed(chat_id):
+            await message.reply_text("Sorry, you're not authorized.")
             return
 
         if not self.ir:
-            await update.message.reply_text("IR controller not configured.")
+            await message.reply_text("IR controller not configured.")
             return
 
         if not context.args:
-            await update.message.reply_text(
-                "Usage: /record <name> <description>\n"
-                "Example: /record power Toggle TV power on/off"
+            await message.reply_text(
+                "Usage: /record <name> <description>\nExample: /record power Toggle TV power on/off"
             )
             return
 
@@ -147,12 +170,12 @@ class ClawdiaTelegramBot:
         description = " ".join(context.args[1:]).strip() if len(context.args) > 1 else ""
 
         if self.ir.has_command(command):
-            await update.message.reply_text(
+            await message.reply_text(
                 f"'{command}' already exists. Recording will overwrite it.\n"
                 "Point your remote at the IR receiver and press the button within 10 seconds..."
             )
         else:
-            await update.message.reply_text(
+            await message.reply_text(
                 f"Recording '{command}'...\n"
                 "Point your remote at the IR receiver and press the button within 10 seconds..."
             )
@@ -162,17 +185,22 @@ class ClawdiaTelegramBot:
             if description:
                 self.ir.set_description(command, description)
             self.brain.reload_commands()
-            await update.message.reply_text(f"Recorded '{command}': {description}" if description else f"Recorded '{command}'")
+            await message.reply_text(
+                f"Recorded '{command}': {description}" if description else f"Recorded '{command}'"
+            )
         else:
-            await update.message.reply_text(f"Failed to record '{command}'. Timed out or no signal received.")
+            await message.reply_text(
+                f"Failed to record '{command}'. Timed out or no signal received."
+            )
 
     async def _handle_play(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /play [query] - play music or search and play a track."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        chat_id = self._require_chat(update).id
+        music = self._get_music(chat_id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
-        chat_id = update.effective_chat.id
         if context.args:
             query = " ".join(context.args)
             if self.coordinator:
@@ -196,74 +224,81 @@ class ClawdiaTelegramBot:
                 )
             else:
                 result = await music.play()
-        await update.message.reply_text(result)
+        await message.reply_text(result)
 
     async def _handle_pause(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /pause - pause playback."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        chat_id = self._require_chat(update).id
+        music = self._get_music(chat_id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
         result = await music.pause()
         if self.coordinator:
-            await self.coordinator.stop(f"spotify:{update.effective_chat.id}")
-        await update.message.reply_text(result)
+            await self.coordinator.stop(f"spotify:{chat_id}")
+        await message.reply_text(result)
 
     async def _handle_skip(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /skip - skip to next track."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        music = self._get_music(self._require_chat(update).id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
         result = await music.skip()
-        await update.message.reply_text(result)
+        await message.reply_text(result)
 
     async def _handle_prev(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /prev - go to previous track."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        music = self._get_music(self._require_chat(update).id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
         result = await music.previous()
-        await update.message.reply_text(result)
+        await message.reply_text(result)
 
     async def _handle_np(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /np - show now playing."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        music = self._get_music(self._require_chat(update).id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
         result = await music.now_playing()
-        await update.message.reply_text(result)
+        await message.reply_text(result)
 
     async def _handle_vol(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /vol <0-100> - set volume."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        music = self._get_music(self._require_chat(update).id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
         if not context.args:
-            await update.message.reply_text("Usage: /vol <0-100>\nExample: /vol 75")
+            await message.reply_text("Usage: /vol <0-100>\nExample: /vol 75")
             return
         try:
             level = int(context.args[0])
         except ValueError:
-            await update.message.reply_text("Usage: /vol <0-100>\nExample: /vol 75")
+            await message.reply_text("Usage: /vol <0-100>\nExample: /vol 75")
             return
         result = await music.volume(level)
-        await update.message.reply_text(result)
+        await message.reply_text(result)
 
     async def _handle_playlist(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /playlist <name> - play a playlist by name."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        chat_id = self._require_chat(update).id
+        music = self._get_music(chat_id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
         if not context.args:
-            await update.message.reply_text("Usage: /playlist <name>\nExample: /playlist chill")
+            await message.reply_text("Usage: /playlist <name>\nExample: /playlist chill")
             return
         name = " ".join(context.args)
-        chat_id = update.effective_chat.id
         if self.coordinator:
             result = await self.coordinator.play(
                 service=f"spotify:{chat_id}",
@@ -274,37 +309,40 @@ class ClawdiaTelegramBot:
             )
         else:
             result = await music.play_playlist(name)
-        await update.message.reply_text(result)
+        await message.reply_text(result)
 
     async def _handle_queue(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /queue <query> - add a track to the queue."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        music = self._get_music(self._require_chat(update).id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
         if not context.args:
-            await update.message.reply_text("Usage: /queue <query>\nExample: /queue jazz classics")
+            await message.reply_text("Usage: /queue <query>\nExample: /queue jazz classics")
             return
         query = " ".join(context.args)
         result = await music.queue_track(query)
-        await update.message.reply_text(result)
+        await message.reply_text(result)
 
     async def _handle_playlists(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /playlists - list available playlists."""
-        music = self._get_music(update.effective_chat.id)
+        message = self._require_message(update)
+        music = self._get_music(self._require_chat(update).id)
         if not music:
-            await update.message.reply_text("Music playback is not configured.")
+            await message.reply_text("Music playback is not configured.")
             return
         playlists = await music.list_playlists()
         if not playlists:
-            await update.message.reply_text("No playlists found.")
+            await message.reply_text("No playlists found.")
             return
         lines = [f"• {pl['name']}" for pl in playlists]
-        await update.message.reply_text("Your playlists:\n" + "\n".join(lines))
+        await message.reply_text("Your playlists:\n" + "\n".join(lines))
 
     async def _handle_pc_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /pc command - show PC remote control status."""
-        await update.message.reply_text(
+        message = self._require_message(update)
+        await message.reply_text(
             "PC Remote Control\n\n"
             "Just send me a message describing what you want to do on your PC.\n"
             "Examples:\n"
@@ -316,32 +354,39 @@ class ClawdiaTelegramBot:
 
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle text messages - delegate to orchestrator."""
-        if not self._is_allowed(update.effective_chat.id):
-            await update.message.reply_text("Sorry, you're not authorized.")
+        message = self._require_message(update)
+        chat = self._require_chat(update)
+        if not self._is_allowed(chat.id):
+            await message.reply_text("Sorry, you're not authorized.")
             return
 
-        text = update.message.text
-        chat_id = update.effective_chat.id
+        text = message.text
+        if text is None:
+            return
+        chat_id = chat.id
         logger.info("Telegram message received: {}", text)
 
         if not self._orchestrator:
-            await update.message.reply_text("Sorry, I'm not fully initialized yet.")
+            await message.reply_text("Sorry, I'm not fully initialized yet.")
             return
+
+        async def reply_text(text: str) -> None:
+            await message.reply_text(text)
 
         async def send_typing() -> None:
             try:
-                await update.effective_chat.send_action(ChatAction.TYPING)
+                await chat.send_action(ChatAction.TYPING)
             except Exception:
                 pass
 
         await self._orchestrator.handle_text_command(
             text,
-            reply=update.message.reply_text,
+            reply=reply_text,
             context_id=str(chat_id),
             music_override=self._get_music(chat_id),
             source="telegram",
             on_typing=send_typing,
-            on_progress=update.message.reply_text,
+            on_progress=reply_text,
             chat_id=chat_id,
         )
 
@@ -350,13 +395,19 @@ class ClawdiaTelegramBot:
         self._app = self._build_app()
         await self._app.initialize()
         await self._app.start()
-        await self._app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        updater = self._app.updater
+        if updater is None:
+            raise RuntimeError("Telegram updater is unavailable")
+        await updater.start_polling(allowed_updates=Update.ALL_TYPES)
         logger.info("Telegram bot started")
 
     async def stop(self) -> None:
         """Stop the Telegram bot."""
         if self._app:
-            await self._app.updater.stop()
+            updater = self._app.updater
+            if updater is None:
+                raise RuntimeError("Telegram updater is unavailable")
+            await updater.stop()
             await self._app.stop()
             await self._app.shutdown()
             logger.info("Telegram bot stopped")

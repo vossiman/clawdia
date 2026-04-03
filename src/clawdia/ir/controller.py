@@ -43,9 +43,13 @@ class IRController:
         return " ".join(parts)
 
     def generate_code_file(
-        self, command: str, description: str = "", *,
+        self,
+        command: str,
+        description: str = "",
+        *,
         samsung_code: int | None = None,
-        nec_address: int | None = None, nec_command: int | None = None,
+        nec_address: int | None = None,
+        nec_command: int | None = None,
     ) -> Path:
         """Generate an IR code file from a scancode and update metadata."""
         if samsung_code is not None:
@@ -85,10 +89,7 @@ class IRController:
 
     def list_commands_with_descriptions(self) -> list[tuple[str, str]]:
         """List commands with their descriptions."""
-        return [
-            (name, self._meta.get(name, ""))
-            for name in self.list_commands()
-        ]
+        return [(name, self._meta.get(name, "")) for name in self.list_commands()]
 
     def has_command(self, command: str) -> bool:
         """Check if an IR command code file exists."""
@@ -118,7 +119,8 @@ class IRController:
             try:
                 process = await asyncio.create_subprocess_exec(
                     "ir-ctl",
-                    "-d", self.device_send,
+                    "-d",
+                    self.device_send,
                     f"--send={code_path}",
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
@@ -149,18 +151,19 @@ class IRController:
         Returns True if a code was captured, False on timeout/error.
         """
         code_path = self.codes_dir / f"{command}.txt"
+        process: asyncio.subprocess.Process | None = None
 
         try:
             process = await asyncio.create_subprocess_exec(
                 "ir-ctl",
-                "-d", self.device_send.replace("lirc0", "lirc1"),
-                "-r", "--one-shot",
+                "-d",
+                self.device_send.replace("lirc0", "lirc1"),
+                "-r",
+                "--one-shot",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(), timeout=timeout
-            )
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
 
             if process.returncode == 0 and stdout:
                 code_path.write_bytes(stdout)
@@ -170,8 +173,9 @@ class IRController:
             logger.warning("IR recording returned no data for '{}'", command)
             return False
 
-        except asyncio.TimeoutError:
-            process.kill()
+        except TimeoutError:
+            if process is not None:
+                process.kill()
             logger.warning("IR recording timed out for '{}'", command)
             return False
         except FileNotFoundError:

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Callable, Awaitable
+import importlib
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from loguru import logger
 
@@ -38,8 +40,10 @@ class WakeWordListener:
     def _init_model(self):
         """Initialize the openWakeWord model. Requires openwakeword package."""
         try:
-            from openwakeword.model import Model
-            self._oww_model = Model(
+            model_module = importlib.import_module("openwakeword.model")
+            model_cls = model_module.Model
+
+            self._oww_model = model_cls(
                 wakeword_models=[self.model_path] if not self.model_path.startswith("hey_") else [],
                 inference_framework="tflite",
             )
@@ -55,8 +59,8 @@ class WakeWordListener:
         Requires: openwakeword, pyaudio, and a working microphone.
         """
         try:
-            import pyaudio
-            import numpy as np
+            np: Any = importlib.import_module("numpy")
+            pyaudio: Any = importlib.import_module("pyaudio")
         except ImportError:
             logger.error("pyaudio/numpy not installed. Install with: pip install clawdia[voice]")
             return
@@ -86,7 +90,7 @@ class WakeWordListener:
                 )
                 predictions = self._oww_model.predict(audio_frame)
 
-                for model_name, score in predictions.items():
+                for _model_name, score in predictions.items():
                     if score > self.threshold:
                         await self._on_detected()
 
@@ -99,7 +103,7 @@ class WakeWordListener:
     async def capture_audio(self, duration: float = 5.0) -> bytes:
         """Capture audio from mic for a given duration. Returns raw PCM bytes."""
         try:
-            import pyaudio
+            pyaudio: Any = importlib.import_module("pyaudio")
         except ImportError:
             logger.error("pyaudio not installed")
             return b""

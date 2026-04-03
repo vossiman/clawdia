@@ -7,16 +7,26 @@ from pydantic import BaseModel, Field, model_validator
 
 class IRAction(BaseModel):
     """An IR command to send to the TV."""
+
     command: str = Field(description="IR command name, e.g. 'power', 'vol_up', 'channel_3'")
     repeat: int = Field(default=1, description="Number of times to send the command", ge=1, le=10)
 
 
 class MusicAction(BaseModel):
     """A music playback command."""
+
     command: Literal[
-        "play", "pause", "skip", "previous", "volume",
-        "search", "play_query", "play_playlist", "queue",
-        "now_playing", "list_playlists",
+        "play",
+        "pause",
+        "skip",
+        "previous",
+        "volume",
+        "search",
+        "play_query",
+        "play_playlist",
+        "queue",
+        "now_playing",
+        "list_playlists",
     ] = Field(description="Music command to execute")
     query: str | None = Field(default=None, description="Search query or playlist name")
     volume: int | None = Field(default=None, description="Volume level 0-100", ge=0, le=100)
@@ -24,6 +34,7 @@ class MusicAction(BaseModel):
 
 class PCAction(BaseModel):
     """A command to execute on the remote Linux PC."""
+
     command_type: Literal["shell", "computer_use"] = Field(
         description="'shell' for direct commands, 'computer_use' for GUI interaction"
     )
@@ -31,19 +42,24 @@ class PCAction(BaseModel):
         default=None, description="Shell command to run, required if command_type='shell'"
     )
     goal: str | None = Field(
-        default=None, description="Natural language goal for computer use agent, required if command_type='computer_use'"
+        default=None,
+        description="Natural language goal for computer use agent, required if command_type='computer_use'",
     )
 
 
 class LearnAction(BaseModel):
     """A correction or fact to add to the knowledge base."""
-    section: str = Field(description="Knowledge base section: 'pc', 'services', 'preferences', or 'corrections'")
+
+    section: str = Field(
+        description="Knowledge base section: 'pc', 'services', 'preferences', or 'corrections'"
+    )
     key: str = Field(description="Key within the section, e.g. 'browser', 'emby'")
     value: str | dict = Field(description="The fact to store")
 
 
 class ClawdiaResponse(BaseModel):
     """Structured response from the Clawdia brain."""
+
     action: Literal["ir", "respond", "music", "pc", "learn"] = Field(
         description=(
             "'ir' to send an IR command, 'respond' to reply with text, "

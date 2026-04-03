@@ -22,6 +22,4 @@ async def test_notify():
     with patch.object(bot, "_bot") as mock_bot:
         mock_bot.send_message = AsyncMock()
         await bot.notify("Test message")
-        mock_bot.send_message.assert_called_once_with(
-            chat_id=12345, text="Test message"
-        )
+        mock_bot.send_message.assert_called_once_with(chat_id=12345, text="Test message")

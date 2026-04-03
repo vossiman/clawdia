@@ -1,7 +1,8 @@
-import pytest
 from unittest.mock import MagicMock, patch
 
-from clawdia.pc_agent.agent import ComputerUseAgent, AgentResult
+import pytest
+
+from clawdia.pc_agent.agent import AgentResult, ComputerUseAgent
 
 
 @pytest.fixture

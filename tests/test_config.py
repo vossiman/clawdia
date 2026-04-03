@@ -2,8 +2,9 @@ from clawdia.config import Settings
 
 
 def test_settings_defaults():
-    s = Settings(openrouter_api_key="k", openai_api_key="k",
-                 telegram_bot_token="t", telegram_chat_ids="1")
+    s = Settings(
+        openrouter_api_key="k", openai_api_key="k", telegram_bot_token="t", telegram_chat_ids="1"
+    )
     assert s.openrouter_model == "anthropic/claude-haiku-4.5"
     assert s.stt_model == "gpt-4o-mini-transcribe"
     assert s.audio_sample_rate == 16000

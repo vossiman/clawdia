@@ -1,5 +1,6 @@
 import pytest
-from clawdia.brain.models import ClawdiaResponse, PCAction, LearnAction
+
+from clawdia.brain.models import ClawdiaResponse, LearnAction, PCAction
 
 
 def test_pc_shell_response():
@@ -52,6 +53,7 @@ def test_learn_response_requires_learn_field():
 
 def test_existing_ir_response_still_works():
     from clawdia.brain.models import IRAction
+
     r = ClawdiaResponse(
         action="ir",
         ir=IRAction(command="power"),

@@ -7,7 +7,11 @@ def test_system_prompt_includes_playback_state():
     ir = MagicMock()
     ir.list_commands_with_descriptions.return_value = []
     music = MagicMock()
-    result = build_system_prompt(ir=ir, music=music, playback_state="Currently playing: Jazz by Miles (spotify:123, since 2 min ago)")
+    result = build_system_prompt(
+        ir=ir,
+        music=music,
+        playback_state="Currently playing: Jazz by Miles (spotify:123, since 2 min ago)",
+    )
     assert "Currently playing: Jazz by Miles" in result
 
 

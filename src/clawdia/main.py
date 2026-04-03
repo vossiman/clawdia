@@ -4,12 +4,13 @@ import asyncio
 import signal
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from loguru import logger  # noqa: E402
 
-from clawdia.config import settings  # noqa: E402
 from clawdia.brain import Brain  # noqa: E402
+from clawdia.config import settings  # noqa: E402
 from clawdia.ir import IRController  # noqa: E402
 from clawdia.log import setup as setup_logging  # noqa: E402
 from clawdia.logger_db import InteractionLogger  # noqa: E402
@@ -53,7 +54,12 @@ async def run() -> None:
                 cache_path=cache_path,
             )
             music_controllers[chat_id] = mc
-            logger.info("Spotify controller for chat {} (device: {}, cache: {})", chat_id, device_name, cache_path)
+            logger.info(
+                "Spotify controller for chat {} (device: {}, cache: {})",
+                chat_id,
+                device_name,
+                cache_path,
+            )
         if music_controllers:
             music = next(iter(music_controllers.values()))
     elif settings.spotify_client_id and settings.spotify_client_secret:
@@ -64,7 +70,9 @@ async def run() -> None:
             device_name=settings.spotify_device_name,
             cache_path=settings.spotify_cache_path,
         )
-        logger.info("Spotify music controller initialized (device: {})", settings.spotify_device_name)
+        logger.info(
+            "Spotify music controller initialized (device: {})", settings.spotify_device_name
+        )
     else:
         logger.info("Spotify not configured (missing client credentials)")
 
@@ -73,7 +81,8 @@ async def run() -> None:
     knowledge = None
     pc_knowledge = ""
     if settings.pc_enabled:
-        from clawdia.pc import PCController, KnowledgeBase
+        from clawdia.pc import KnowledgeBase, PCController
+
         pc = PCController(
             ssh_host=settings.pc_ssh_host,
             ssh_user=settings.pc_ssh_user,
@@ -97,7 +106,15 @@ async def run() -> None:
     interaction_logger = InteractionLogger(db_path=f"{settings.data_dir}/clawdia.db")
     await interaction_logger.init_db()
 
-    brain = Brain(model=f"openrouter:{settings.openrouter_model}", ir=ir, music=music, pc_enabled=pc is not None, pc_knowledge=pc_knowledge, coordinator=coordinator, db=interaction_logger)
+    brain = Brain(
+        model=f"openrouter:{settings.openrouter_model}",
+        ir=ir,
+        music=music,
+        pc_enabled=pc is not None,
+        pc_knowledge=pc_knowledge,
+        coordinator=coordinator,
+        db=interaction_logger,
+    )
     await brain.load_history()
 
     chat_ids = {int(x.strip()) for x in settings.telegram_chat_ids.split(",") if x.strip()}
@@ -117,6 +134,7 @@ async def run() -> None:
     stt = None
     if settings.openai_api_key:
         from clawdia.voice.stt import SpeechToText
+
         stt = SpeechToText(
             api_key=settings.openai_api_key,
             model=settings.stt_model,
@@ -142,6 +160,7 @@ async def run() -> None:
 
     # Run startup health checks
     from clawdia.health import startup_health_check
+
     issues = await startup_health_check(
         music_controllers=music_controllers or None,
         pc=pc,
