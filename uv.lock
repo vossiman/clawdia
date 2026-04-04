@@ -213,7 +213,7 @@ requires-dist = [
     { name = "anthropic", specifier = ">=0.40" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "loguru", specifier = ">=0.7" },
-    { name = "numpy", marker = "extra == 'voice'", specifier = ">=1.24" },
+    { name = "numpy", marker = "extra == 'voice'", specifier = ">=1.26.4" },
     { name = "openai", specifier = ">=1.0" },
     { name = "openwakeword", marker = "extra == 'voice'", specifier = ">=0.6" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.5.1" },
