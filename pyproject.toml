@@ -2,7 +2,7 @@
 name = "clawdia"
 version = "0.1.0"
 description = "Open-source Raspberry Pi voice assistant with IR TV control"
-requires-python = ">=3.11"
+requires-python = "==3.12.*"
 dependencies = [
     "anthropic>=0.87.0",
     "pydantic>=2.12.5",
@@ -20,6 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 voice = [
     "openwakeword>=0.6",
+    "onnxruntime>=1.10",
     "pyaudio>=0.2.14",
     "numpy>=2.4.4",
     "scipy>=1.17.1",
@@ -67,7 +68,7 @@ show_missing = true
 skip_covered = true
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]
@@ -101,3 +102,6 @@ max-statements = 130
 "src/clawdia/orchestrator.py" = ["C901", "PLR0912", "PLR0915"]
 "src/clawdia/pc_agent/actions.py" = ["S108"]
 "src/clawdia/telegram_bot/bot.py" = ["S110"]
+
+[tool.uv]
+override-dependencies = ["tflite-runtime>=0; python_version < '0'"]

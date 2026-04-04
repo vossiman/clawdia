@@ -45,7 +45,7 @@ class WakeWordListener:
 
             self._oww_model = model_cls(
                 wakeword_models=[self.model_path] if not self.model_path.startswith("hey_") else [],
-                inference_framework="tflite",
+                inference_framework="onnx",
             )
             logger.info("Wake word model loaded: {}", self.model_path)
         except ImportError:
