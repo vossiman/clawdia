@@ -229,7 +229,7 @@ requires-dist = [
     { name = "python-telegram-bot", specifier = ">=22.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
-    { name = "scipy", marker = "extra == 'voice'", specifier = ">=1.10" },
+    { name = "scipy", marker = "extra == 'voice'", specifier = ">=1.17.1" },
     { name = "spotipy", specifier = ">=2.24" },
 ]
 provides-extras = ["voice", "dev"]
