@@ -214,7 +214,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.27" },
     { name = "loguru", specifier = ">=0.7" },
     { name = "numpy", marker = "extra == 'voice'", specifier = ">=1.24" },
-    { name = "openai", specifier = ">=1.0" },
+    { name = "openai", specifier = ">=2.30.0" },
     { name = "openwakeword", marker = "extra == 'voice'", specifier = ">=0.6" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.5.1" },
     { name = "pyaudio", marker = "extra == 'voice'", specifier = ">=0.2" },
