@@ -230,7 +230,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
     { name = "scipy", marker = "extra == 'voice'", specifier = ">=1.10" },
-    { name = "spotipy", specifier = ">=2.24" },
+    { name = "spotipy", specifier = ">=2.26.0" },
 ]
 provides-extras = ["voice", "dev"]
 
