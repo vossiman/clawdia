@@ -228,7 +228,7 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.0" },
     { name = "python-telegram-bot", specifier = ">=22.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.8" },
     { name = "scipy", marker = "extra == 'voice'", specifier = ">=1.10" },
     { name = "spotipy", specifier = ">=2.26.0" },
 ]
