@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Open-source Raspberry Pi voice assistant with IR TV control"
 requires-python = ">=3.11"
 dependencies = [
-    "anthropic>=0.40",
+    "anthropic>=0.87.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.13.1",
     "pydantic-ai-slim[openrouter]>=1.75.0",
