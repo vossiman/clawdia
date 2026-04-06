@@ -8,12 +8,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     v4l-utils \
     openssh-client \
     systemd \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --extra voice --no-install-project
+
+# Remove build tools to keep image smaller
+RUN apt-get purge -y --auto-remove build-essential
 
 ENV VIRTUAL_ENV=/app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
