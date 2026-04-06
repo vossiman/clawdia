@@ -192,6 +192,19 @@ async def run() -> None:
         )
     )
 
+    # Set up audio levels: mic at 100%, app volumes at 100% (system volume untouched)
+    try:
+        # Set all mic sources to 100%
+        proc = await asyncio.create_subprocess_exec(
+            "pactl", "set-source-volume", "@DEFAULT_SOURCE@", "100%",
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await proc.wait()
+        logger.info("Audio levels initialized (mic: 100%%)")
+    except Exception:
+        logger.warning("Failed to set audio levels via pactl")
+
     # Optional: Start wake word listener (needs hardware)
     listener_task = None
     try:
