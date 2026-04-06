@@ -21,7 +21,7 @@ class TextToSpeech:
                 input=text,
                 response_format="wav",
             )
-            audio_data = await response.read()
+            audio_data = response.read()
             logger.info("TTS synthesized {} bytes for: '{}'", len(audio_data), text[:50])
             return audio_data
         except Exception:

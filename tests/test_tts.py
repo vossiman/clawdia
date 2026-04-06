@@ -8,8 +8,8 @@ async def test_synthesize():
 
     with patch("clawdia.voice.tts.openai.AsyncOpenAI") as MockClient:
         mock_client = AsyncMock()
-        mock_response = AsyncMock()
-        mock_response.read = AsyncMock(return_value=mock_audio_data)
+        mock_response = MagicMock()
+        mock_response.read.return_value = mock_audio_data
         mock_client.audio.speech.create = AsyncMock(return_value=mock_response)
         MockClient.return_value = mock_client
 
@@ -28,8 +28,8 @@ async def test_synthesize():
 async def test_synthesize_custom_voice():
     with patch("clawdia.voice.tts.openai.AsyncOpenAI") as MockClient:
         mock_client = AsyncMock()
-        mock_response = AsyncMock()
-        mock_response.read = AsyncMock(return_value=b"data")
+        mock_response = MagicMock()
+        mock_response.read.return_value = b"data"
         mock_client.audio.speech.create = AsyncMock(return_value=mock_response)
         MockClient.return_value = mock_client
 
