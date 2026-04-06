@@ -62,28 +62,3 @@ async def test_play_file_logs_on_failure(player):
 
         # Should not raise, just log
         await player.play_file("/path/to/missing.wav")
-
-
-async def test_play_file_suppresses_listener():
-    from unittest.mock import MagicMock
-
-    listener = MagicMock()
-    listener._suppressed = False
-    player = AudioPlayer(listener=listener)
-
-    suppressed_during_play = []
-
-    async def fake_wait():
-        suppressed_during_play.append(listener._suppressed)
-        return 0
-
-    with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.wait = fake_wait
-        mock_proc.returncode = 0
-        mock_exec.return_value = mock_proc
-
-        await player.play_file("/path/to/chime.wav")
-
-    assert suppressed_during_play == [True]
-    assert listener._suppressed is False

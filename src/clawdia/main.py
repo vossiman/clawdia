@@ -246,17 +246,22 @@ async def run() -> None:
         )
 
         async def on_wake_word():
-            logger.info("Wake word detected! Playing chime...")
-            await player.play_file(f"{sounds_dir}/chime.wav")
-            logger.info("Capturing audio...")
-            audio_data = await listener.capture_audio(duration=5.0)
-            await orchestrator.handle_audio(
-                audio_data,
-                reply=voice_reply,
-                context_id=settings.voice_context_id,
-                source="voice",
-                on_error=on_error,
-            )
+            logger.info("Wake word detected!")
+            listener._suppressed = True
+            try:
+                logger.info("Playing chime...")
+                await player.play_file(f"{sounds_dir}/chime.wav")
+                logger.info("Capturing audio...")
+                audio_data = await listener.capture_audio(duration=5.0)
+                await orchestrator.handle_audio(
+                    audio_data,
+                    reply=voice_reply,
+                    context_id=settings.voice_context_id,
+                    source="voice",
+                    on_error=on_error,
+                )
+            finally:
+                listener._suppressed = False
 
         listener.on_wake_word = on_wake_word
         listener_task = asyncio.create_task(listener.start_listening())
