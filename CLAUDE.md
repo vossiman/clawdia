@@ -72,11 +72,13 @@ uv run pre-commit run --all-files
 - **Conversation history**: Brain maintains per-context history. Telegram uses `chat_id` as context, voice uses `"default"`.
 - **Interaction logging**: Commands are logged to `clawdia.db` via `InteractionLogger`.
 - **Knowledge base**: PC facts in `pc_knowledge.yaml`, injected into the brain prompt.
+- **Health checks**: Startup health check polls Spotify API (up to 60s) and restarts librespot if needed. Periodic check runs every 5 minutes and alerts via Telegram on failure.
+- **Librespot credentials**: Cached in `~/.cache/librespot-{gernot,oxana}/` on the Pi. If lost, re-auth with `librespot -j -K <port>` and SSH port forwarding.
 
 ## Key Files
 
 - `pyproject.toml`: dependencies, Ruff config, pytest config, coverage config, package metadata
-- `Dockerfile`: container build for the app and voice dependencies
+- `Dockerfile`: kept for reference / CI, not used on the Pi
 - `.pre-commit-config.yaml`: local git hooks for hygiene and Ruff
 - `pyrightconfig.json`: type-checker scope and `.venv` settings
 - `.github/workflows/ci.yml`: CI workflow for lint, type-check, and tests
