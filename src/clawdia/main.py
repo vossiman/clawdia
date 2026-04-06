@@ -237,6 +237,7 @@ async def run() -> None:
             threshold=settings.wake_word_threshold,
             sample_rate=settings.audio_sample_rate,
             chunk_size=settings.audio_chunk_size,
+            cooldown=settings.wake_word_cooldown,
             on_wake_word=on_wake_word,
         )
         listener_task = asyncio.create_task(listener.start_listening())

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -18,18 +19,21 @@ class WakeWordListener:
     def __init__(
         self,
         model_path: str = "hey_jarvis",
-        threshold: float = 0.5,
+        threshold: float = 0.7,
         sample_rate: int = 16000,
         chunk_size: int = 1280,
+        cooldown: float = 5.0,
         on_wake_word: Callable[[], Awaitable[None]] | None = None,
     ):
         self.model_path = model_path
         self.threshold = threshold
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
+        self.cooldown = cooldown
         self.on_wake_word = on_wake_word
         self._running = False
         self._oww_model = None
+        self._last_detection: float = 0.0
 
     async def _on_detected(self) -> None:
         """Called when wake word is detected."""
@@ -91,7 +95,9 @@ class WakeWordListener:
                 predictions = self._oww_model.predict(audio_frame)
 
                 for _model_name, score in predictions.items():
-                    if score > self.threshold:
+                    now = time.monotonic()
+                    if score > self.threshold and (now - self._last_detection) > self.cooldown:
+                        self._last_detection = now
                         await self._on_detected()
 
                 await asyncio.sleep(0)
