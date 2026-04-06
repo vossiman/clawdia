@@ -258,17 +258,36 @@ class Orchestrator:
                     llm_duration_ms=llm_ms if response else None,
                 )
 
-    async def handle_audio(self, pcm_data: bytes) -> None:
+    async def handle_audio(
+        self,
+        pcm_data: bytes,
+        *,
+        reply: Callable[[str], Awaitable[None]] | None = None,
+        context_id: str = "default",
+        source: str = "voice",
+        on_error: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
         """Process captured audio through STT -> brain -> action."""
         if self.stt is None:
             logger.error("STT not configured")
             return
 
         wav_data = self.stt.pcm_to_wav(pcm_data)
-        text = await self.stt.transcribe(wav_data)
+
+        try:
+            text = await self.stt.transcribe(wav_data)
+        except Exception:
+            logger.exception("STT transcription failed")
+            if on_error:
+                await on_error()
+            return
 
         if not text:
             logger.info("STT returned empty transcript, ignoring")
+            if on_error:
+                await on_error()
             return
 
-        await self.handle_text_command(text)
+        await self.handle_text_command(
+            text, reply=reply, context_id=context_id, source=source,
+        )

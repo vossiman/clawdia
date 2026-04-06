@@ -72,3 +72,53 @@ async def test_handle_ir_command_unknown(orchestrator, mock_brain, mock_ir, mock
     mock_ir.send.assert_not_called()
     assert mock_telegram.notify.call_count == 1
     assert "not available" in mock_telegram.notify.call_args[0][0].lower()
+
+
+async def test_handle_audio_calls_stt_and_routes(orchestrator, mock_brain, mock_telegram):
+    """Test that handle_audio transcribes and routes to handle_text_command."""
+    mock_stt = AsyncMock()
+    mock_stt.pcm_to_wav = MagicMock(return_value=b"wav-data")
+    mock_stt.transcribe = AsyncMock(return_value="play some jazz")
+    orchestrator.stt = mock_stt
+
+    response = ClawdiaResponse(action="respond", message="Playing jazz")
+    mock_brain.process.return_value = response
+
+    await orchestrator.handle_audio(b"pcm-data")
+
+    mock_stt.pcm_to_wav.assert_called_once_with(b"pcm-data")
+    mock_stt.transcribe.assert_called_once_with(b"wav-data")
+    mock_brain.process.assert_called_once()
+
+
+async def test_handle_audio_empty_transcript_calls_on_error(orchestrator):
+    """Test that empty STT triggers on_error callback."""
+    mock_stt = AsyncMock()
+    mock_stt.pcm_to_wav = MagicMock(return_value=b"wav-data")
+    mock_stt.transcribe = AsyncMock(return_value="")
+    orchestrator.stt = mock_stt
+
+    on_error = AsyncMock()
+    await orchestrator.handle_audio(b"pcm-data", on_error=on_error)
+
+    on_error.assert_called_once()
+
+
+async def test_handle_audio_stt_exception_calls_on_error(orchestrator):
+    """Test that STT failure triggers on_error callback."""
+    mock_stt = AsyncMock()
+    mock_stt.pcm_to_wav = MagicMock(return_value=b"wav-data")
+    mock_stt.transcribe = AsyncMock(side_effect=Exception("API timeout"))
+    orchestrator.stt = mock_stt
+
+    on_error = AsyncMock()
+    await orchestrator.handle_audio(b"pcm-data", on_error=on_error)
+
+    on_error.assert_called_once()
+
+
+async def test_handle_audio_no_stt(orchestrator):
+    """Test that handle_audio is a no-op without STT configured."""
+    orchestrator.stt = None
+    await orchestrator.handle_audio(b"pcm-data")
+    # Should not raise
