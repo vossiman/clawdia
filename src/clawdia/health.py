@@ -58,6 +58,7 @@ async def ensure_spotify_device(
     device_name: str,
     max_retries: int = 2,
     wait_after_restart: float = 5.0,
+    initial_wait: float = 10.0,
 ) -> bool:
     """Check if a Spotify device is visible; restart librespot if not.
 
@@ -66,7 +67,20 @@ async def ensure_spotify_device(
     if await controller.check_device_available():
         return True
 
-    logger.warning("Spotify device '{}' not found, attempting librespot restart", device_name)
+    # Device may still be registering with Spotify after boot — wait and retry
+    # before attempting a restart.
+    logger.info(
+        "Spotify device '{}' not found, waiting {:.0f}s for it to register...",
+        device_name,
+        initial_wait,
+    )
+    await asyncio.sleep(initial_wait)
+
+    if await controller.check_device_available():
+        logger.info("Device '{}' appeared after initial wait", device_name)
+        return True
+
+    logger.warning("Spotify device '{}' still not found, attempting librespot restart", device_name)
 
     for attempt in range(1, max_retries + 1):
         restarted = await _restart_librespot(device_name)
