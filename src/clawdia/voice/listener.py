@@ -34,6 +34,7 @@ class WakeWordListener:
         self._running = False
         self._oww_model = None
         self._last_detection: float = 0.0
+        self._suppressed = False
 
     async def _on_detected(self) -> None:
         """Called when wake word is detected."""
@@ -96,7 +97,11 @@ class WakeWordListener:
 
                 for _model_name, score in predictions.items():
                     if score > 0.1:
-                        logger.debug("Wake word score: {:.3f} (threshold: {})", score, self.threshold)
+                        logger.debug(
+                            "Wake word score: {:.3f} (threshold: {})", score, self.threshold
+                        )
+                    if self._suppressed:
+                        continue
                     now = time.monotonic()
                     if score > self.threshold and (now - self._last_detection) > self.cooldown:
                         self._last_detection = now

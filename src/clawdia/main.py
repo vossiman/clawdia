@@ -196,7 +196,10 @@ async def run() -> None:
     try:
         # Set all mic sources to 100%
         proc = await asyncio.create_subprocess_exec(
-            "pactl", "set-source-volume", "@DEFAULT_SOURCE@", "100%",
+            "pactl",
+            "set-source-volume",
+            "@DEFAULT_SOURCE@",
+            "100%",
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
@@ -214,8 +217,18 @@ async def run() -> None:
         from clawdia.voice.pipeline import make_on_error, make_voice_reply
         from clawdia.voice.player import AudioPlayer
 
-        player = AudioPlayer()
         sounds_dir = str(Path(__file__).parent / "voice" / "sounds")
+
+        # Create listener first so player can suppress it during playback
+        listener = WakeWordListener(
+            model_path=settings.wake_word_model,
+            threshold=settings.wake_word_threshold,
+            sample_rate=settings.audio_sample_rate,
+            chunk_size=settings.audio_chunk_size,
+            cooldown=settings.wake_word_cooldown,
+        )
+
+        player = AudioPlayer(listener=listener)
 
         voice_reply = make_voice_reply(
             telegram=telegram,
@@ -245,14 +258,7 @@ async def run() -> None:
                 on_error=on_error,
             )
 
-        listener = WakeWordListener(
-            model_path=settings.wake_word_model,
-            threshold=settings.wake_word_threshold,
-            sample_rate=settings.audio_sample_rate,
-            chunk_size=settings.audio_chunk_size,
-            cooldown=settings.wake_word_cooldown,
-            on_wake_word=on_wake_word,
-        )
+        listener.on_wake_word = on_wake_word
         listener_task = asyncio.create_task(listener.start_listening())
         logger.info("Wake word listener started")
     except Exception:
