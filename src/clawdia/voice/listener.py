@@ -95,6 +95,8 @@ class WakeWordListener:
                 predictions = self._oww_model.predict(audio_frame)
 
                 for _model_name, score in predictions.items():
+                    if score > 0.1:
+                        logger.debug("Wake word score: {:.3f} (threshold: {})", score, self.threshold)
                     now = time.monotonic()
                     if score > self.threshold and (now - self._last_detection) > self.cooldown:
                         self._last_detection = now

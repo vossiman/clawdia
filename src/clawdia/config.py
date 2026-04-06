@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # Voice
     wake_word_model: str = "hey_jarvis_v0.1"
-    wake_word_threshold: float = 0.7
+    wake_word_threshold: float = 0.6
     wake_word_cooldown: float = 5.0
     audio_sample_rate: int = 16000
     audio_chunk_size: int = 1280
