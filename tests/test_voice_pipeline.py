@@ -1,12 +1,10 @@
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import AsyncMock
 
 
 async def test_voice_reply_sends_to_telegram_when_enabled():
     """Test that voice_reply sends to Telegram when voice_response_telegram is True."""
-    from clawdia.voice.tts import TextToSpeech
     from clawdia.voice.player import AudioPlayer
+    from clawdia.voice.tts import TextToSpeech
 
     telegram = AsyncMock()
     tts = AsyncMock(spec=TextToSpeech)
@@ -33,8 +31,8 @@ async def test_voice_reply_sends_to_telegram_when_enabled():
 
 async def test_voice_reply_speaks_when_enabled():
     """Test that voice_reply synthesizes and plays TTS when voice_response_tts is True."""
-    from clawdia.voice.tts import TextToSpeech
     from clawdia.voice.player import AudioPlayer
+    from clawdia.voice.tts import TextToSpeech
 
     telegram = AsyncMock()
     tts = AsyncMock(spec=TextToSpeech)
@@ -62,8 +60,8 @@ async def test_voice_reply_speaks_when_enabled():
 
 async def test_voice_reply_ducks_spotify():
     """Test that Spotify is paused before TTS and resumed after."""
-    from clawdia.voice.tts import TextToSpeech
     from clawdia.voice.player import AudioPlayer
+    from clawdia.voice.tts import TextToSpeech
 
     telegram = AsyncMock()
     tts = AsyncMock(spec=TextToSpeech)
@@ -94,8 +92,8 @@ async def test_voice_reply_ducks_spotify():
 
 async def test_voice_reply_no_duck_without_music():
     """Test that TTS works without a music controller (no ducking)."""
-    from clawdia.voice.tts import TextToSpeech
     from clawdia.voice.player import AudioPlayer
+    from clawdia.voice.tts import TextToSpeech
 
     telegram = AsyncMock()
     tts = AsyncMock(spec=TextToSpeech)
@@ -121,8 +119,8 @@ async def test_voice_reply_no_duck_without_music():
 
 async def test_voice_reply_tts_failure_falls_back_to_telegram():
     """Test that TTS failure sends the message to Telegram instead."""
-    from clawdia.voice.tts import TextToSpeech
     from clawdia.voice.player import AudioPlayer
+    from clawdia.voice.tts import TextToSpeech
 
     telegram = AsyncMock()
     tts = AsyncMock(spec=TextToSpeech)

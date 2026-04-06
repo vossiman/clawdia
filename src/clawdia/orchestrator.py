@@ -289,5 +289,8 @@ class Orchestrator:
             return
 
         await self.handle_text_command(
-            text, reply=reply, context_id=context_id, source=source,
+            text,
+            reply=reply,
+            context_id=context_id,
+            source=source,
         )

@@ -13,7 +13,8 @@ class AudioPlayer:
         """Play a WAV file through the default PulseAudio sink."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                "paplay", path,
+                "paplay",
+                path,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
             )

@@ -140,6 +140,17 @@ async def run() -> None:
             model=settings.stt_model,
         )
 
+    # Optional: TTS (needs OpenAI API key)
+    tts = None
+    if settings.openai_api_key and settings.voice_response_tts:
+        from clawdia.voice.tts import TextToSpeech
+
+        tts = TextToSpeech(
+            api_key=settings.openai_api_key,
+            model=settings.tts_model,
+            voice=settings.tts_voice,
+        )
+
     orchestrator = Orchestrator(
         brain=brain,
         ir=ir,
@@ -184,12 +195,42 @@ async def run() -> None:
     # Optional: Start wake word listener (needs hardware)
     listener_task = None
     try:
+        from pathlib import Path
+
         from clawdia.voice.listener import WakeWordListener
+        from clawdia.voice.pipeline import make_on_error, make_voice_reply
+        from clawdia.voice.player import AudioPlayer
+
+        player = AudioPlayer()
+        sounds_dir = str(Path(__file__).parent / "voice" / "sounds")
+
+        voice_reply = make_voice_reply(
+            telegram=telegram,
+            tts=tts,
+            player=player,
+            music=music,
+            response_telegram=settings.voice_response_telegram,
+            response_tts=settings.voice_response_tts,
+        )
+
+        on_error = make_on_error(
+            telegram=telegram,
+            player=player,
+            error_sound=f"{sounds_dir}/error.wav",
+        )
 
         async def on_wake_word():
-            logger.info("Wake word detected! Capturing audio...")
+            logger.info("Wake word detected! Playing chime...")
+            await player.play_file(f"{sounds_dir}/chime.wav")
+            logger.info("Capturing audio...")
             audio_data = await listener.capture_audio(duration=5.0)
-            await orchestrator.handle_audio(audio_data)
+            await orchestrator.handle_audio(
+                audio_data,
+                reply=voice_reply,
+                context_id=settings.voice_context_id,
+                source="voice",
+                on_error=on_error,
+            )
 
         listener = WakeWordListener(
             model_path=settings.wake_word_model,
