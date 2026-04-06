@@ -15,8 +15,13 @@ Do not check locally for runtime behavior. Use the Pi.
 After code changes, deploy to the Pi:
 
 ```bash
-ssh clawdia "cd ~/clawdia && git pull && docker compose up -d --build"
+ssh clawdia "cd ~/clawdia && git pull && source ~/.local/bin/env && uv sync --frozen --extra voice && systemctl --user restart clawdia"
 ```
+
+Clawdia runs as a systemd user service on the Pi (not Docker). Related services:
+- `pulseaudio.service` — audio output (librespot depends on this)
+- `librespot-gernot.service` / `librespot-oxana.service` — Spotify Connect devices
+- `clawdia.service` — the main app (depends on pulseaudio)
 
 ## Setup
 

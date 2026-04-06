@@ -53,52 +53,54 @@ async def _restart_librespot(device_name: str) -> bool:
         return False
 
 
+async def _poll_device(
+    controller,
+    timeout: float = 60.0,
+    interval: float = 5.0,
+) -> bool:
+    """Poll Spotify API until device appears or timeout is reached."""
+    elapsed = 0.0
+    while elapsed < timeout:
+        if await controller.check_device_available():
+            return True
+        await asyncio.sleep(interval)
+        elapsed += interval
+    return False
+
+
 async def ensure_spotify_device(
     controller,
     device_name: str,
-    max_retries: int = 2,
-    wait_after_restart: float = 5.0,
-    initial_wait: float = 10.0,
+    poll_timeout: float = 60.0,
 ) -> bool:
     """Check if a Spotify device is visible; restart librespot if not.
 
-    Returns True if the device is available (possibly after restart).
+    Polls the Spotify API for up to ``poll_timeout`` seconds before
+    attempting a restart, then polls again after the restart.
     """
     if await controller.check_device_available():
         return True
 
-    # Device may still be registering with Spotify after boot — wait and retry
-    # before attempting a restart.
+    # Device may still be registering with Spotify after boot — poll until
+    # it appears rather than sleeping a fixed amount.
     logger.info(
-        "Spotify device '{}' not found, waiting {:.0f}s for it to register...",
+        "Spotify device '{}' not found, polling for up to {:.0f}s...",
         device_name,
-        initial_wait,
+        poll_timeout,
     )
-    await asyncio.sleep(initial_wait)
-
-    if await controller.check_device_available():
-        logger.info("Device '{}' appeared after initial wait", device_name)
+    if await _poll_device(controller, poll_timeout):
+        logger.info("Device '{}' appeared while polling", device_name)
         return True
 
-    logger.warning("Spotify device '{}' still not found, attempting librespot restart", device_name)
+    # Still not visible — try a restart and poll again.
+    logger.warning("Spotify device '{}' still not found, restarting librespot", device_name)
+    restarted = await _restart_librespot(device_name)
+    if not restarted:
+        return False
 
-    for attempt in range(1, max_retries + 1):
-        restarted = await _restart_librespot(device_name)
-        if not restarted:
-            return False
-
-        await asyncio.sleep(wait_after_restart)
-
-        if await controller.check_device_available():
-            logger.info("Device '{}' is back after restart (attempt {})", device_name, attempt)
-            return True
-
-        logger.warning(
-            "Device '{}' still not visible after restart attempt {}/{}",
-            device_name,
-            attempt,
-            max_retries,
-        )
+    if await _poll_device(controller, poll_timeout):
+        logger.info("Device '{}' appeared after restart", device_name)
+        return True
 
     return False
 
