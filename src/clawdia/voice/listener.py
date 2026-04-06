@@ -44,7 +44,7 @@ class WakeWordListener:
             model_cls = model_module.Model
 
             self._oww_model = model_cls(
-                wakeword_models=[self.model_path] if not self.model_path.startswith("hey_") else [],
+                wakeword_models=[self.model_path],
                 inference_framework="onnx",
             )
             logger.info("Wake word model loaded: {}", self.model_path)

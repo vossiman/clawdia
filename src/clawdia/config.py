@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     ir_codes_dir: str = "ir-codes"
 
     # Voice
-    wake_word_model: str = "hey_jarvis"
+    wake_word_model: str = "hey_jarvis_v0.1"
     wake_word_threshold: float = 0.5
     audio_sample_rate: int = 16000
     audio_chunk_size: int = 1280
