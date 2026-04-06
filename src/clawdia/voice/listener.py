@@ -145,6 +145,12 @@ class WakeWordListener:
 
         return b"".join(frames)
 
+    def reset_state(self) -> None:
+        """Reset the wake word model's prediction state."""
+        if self._oww_model is not None:
+            self._oww_model.reset()
+            logger.debug("Wake word model state reset")
+
     def stop(self) -> None:
         """Stop listening."""
         self._running = False

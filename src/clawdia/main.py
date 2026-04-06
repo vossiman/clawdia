@@ -261,7 +261,11 @@ async def run() -> None:
                     on_error=on_error,
                 )
             finally:
+                # Reset model state and wait for echo cancellation to settle
+                listener.reset_state()
+                await asyncio.sleep(3)
                 listener._suppressed = False
+                logger.debug("Wake word detection re-enabled")
 
         listener.on_wake_word = on_wake_word
         listener_task = asyncio.create_task(listener.start_listening())
