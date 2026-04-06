@@ -228,7 +228,7 @@ async def run() -> None:
             cooldown=settings.wake_word_cooldown,
         )
 
-        player = AudioPlayer(listener=listener)
+        player = AudioPlayer()
 
         voice_reply = make_voice_reply(
             telegram=telegram,
