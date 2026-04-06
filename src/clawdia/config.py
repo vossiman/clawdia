@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     audio_sample_rate: int = 16000
     audio_chunk_size: int = 1280
 
+    # TTS
+    tts_model: str = "tts-1"
+    tts_voice: str = "alloy"
+
+    # Voice response routing
+    voice_response_telegram: bool = True
+    voice_response_tts: bool = True
+    voice_context_id: str = "voice"
+
     # Spotify
     spotify_client_id: str = ""
     spotify_client_secret: str = ""

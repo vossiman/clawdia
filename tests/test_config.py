@@ -70,3 +70,16 @@ def test_spotify_users_setting():
         spotify_users="123:.cache_a,456:.cache_b",
     )
     assert s.spotify_users == "123:.cache_a,456:.cache_b"
+
+
+def test_voice_response_settings():
+    s = Settings(
+        openrouter_api_key="k",
+        telegram_bot_token="t",
+        telegram_chat_ids="1",
+    )
+    assert s.tts_model == "tts-1"
+    assert s.tts_voice == "alloy"
+    assert s.voice_response_telegram is True
+    assert s.voice_response_tts is True
+    assert s.voice_context_id == "voice"
