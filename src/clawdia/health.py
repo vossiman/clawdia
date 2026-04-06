@@ -143,3 +143,45 @@ async def startup_health_check(
             logger.info("IR device: OK")
 
     return issues
+
+
+async def periodic_health_check(
+    *,
+    music_controllers: dict[int, MusicController] | None = None,
+    interval: float = 300.0,
+    notify=None,
+) -> None:
+    """Background loop that checks Spotify devices and restarts them if needed.
+
+    Args:
+        music_controllers: chat_id -> MusicController mapping.
+        interval: Seconds between checks (default 5 minutes).
+        notify: Optional async callable to send alerts (e.g. telegram.notify).
+    """
+    while True:
+        await asyncio.sleep(interval)
+        if not music_controllers:
+            continue
+
+        for mc in music_controllers.values():
+            device_name = mc._device_name
+            if await mc.check_device_available():
+                continue
+
+            logger.warning("Periodic check: Spotify device '{}' offline, restarting", device_name)
+            restarted = await _restart_librespot(device_name)
+            if not restarted:
+                msg = f"Spotify device '{device_name}' offline and restart failed"
+                logger.error(msg)
+                if notify:
+                    await notify(msg)
+                continue
+
+            # Wait for device to register after restart
+            if await _poll_device(mc, timeout=30.0):
+                logger.info("Periodic check: device '{}' recovered after restart", device_name)
+            else:
+                msg = f"Spotify device '{device_name}' not recovering after restart"
+                logger.error(msg)
+                if notify:
+                    await notify(msg)

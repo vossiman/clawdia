@@ -159,7 +159,7 @@ async def run() -> None:
     await telegram.start()
 
     # Run startup health checks
-    from clawdia.health import startup_health_check
+    from clawdia.health import periodic_health_check, startup_health_check
 
     issues = await startup_health_check(
         music_controllers=music_controllers or None,
@@ -172,6 +172,14 @@ async def run() -> None:
         status_msg = "Clawdia is online! All systems go."
     await telegram.notify(status_msg)
     logger.info("Clawdia is running. Telegram bot active. Ctrl+C to stop.")
+
+    # Periodic health checks (every 5 minutes)
+    health_task = asyncio.create_task(
+        periodic_health_check(
+            music_controllers=music_controllers or None,
+            notify=telegram.notify,
+        )
+    )
 
     # Optional: Start wake word listener (needs hardware)
     listener_task = None
@@ -209,6 +217,7 @@ async def run() -> None:
 
     # Cleanup
     logger.info("Shutting down...")
+    health_task.cancel()
     if listener_task:
         listener_task.cancel()
     await telegram.stop()
