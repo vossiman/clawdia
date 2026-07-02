@@ -23,7 +23,7 @@ voice = [
     "onnxruntime>=1.27.0",
     "pyaudio>=0.2.14",
     "numpy>=2.5.0",
-    "scipy>=1.17.1",
+    "scipy>=1.18.0",
 ]
 dev = [
     "pre-commit>=4.6.0",
