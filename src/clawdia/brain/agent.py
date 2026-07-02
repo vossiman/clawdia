@@ -142,4 +142,5 @@ def create_agent(
         model,
         output_type=ClawdiaResponse,
         instructions=prompt,
+        deps_type=type(None),
     )
