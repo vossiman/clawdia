@@ -23,6 +23,16 @@ def test_system_prompt_nothing_playing():
     assert "Nothing is currently playing." in result
 
 
+def test_system_prompt_voice_style_rules():
+    """Prompt instructs concise spoken answers and garbled-STT recovery."""
+    ir = MagicMock()
+    ir.list_commands_with_descriptions.return_value = []
+    result = build_system_prompt(ir=ir, music=None)
+    assert "mis-transcribe" in result
+    assert "one or two short sentences" in result
+    assert "Never list your capabilities" in result
+
+
 def test_system_prompt_no_playback_state():
     ir = MagicMock()
     ir.list_commands_with_descriptions.return_value = []

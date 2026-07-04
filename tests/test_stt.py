@@ -33,6 +33,25 @@ async def test_transcribe():
         assert result == "turn off the tv"
 
 
+async def test_transcribe_sends_context_prompt():
+    """Transcription is biased with a home-assistant command context prompt."""
+    wav_bytes = _make_wav_bytes()
+
+    mock_response = MagicMock()
+    mock_response.text = "play wonderwall by oasis"
+
+    with patch("clawdia.voice.stt.openai.AsyncOpenAI") as MockClient:
+        mock_client = AsyncMock()
+        mock_client.audio.transcriptions.create = AsyncMock(return_value=mock_response)
+        MockClient.return_value = mock_client
+
+        stt = SpeechToText(api_key="test-key")
+        await stt.transcribe(wav_bytes)
+
+        kwargs = mock_client.audio.transcriptions.create.call_args.kwargs
+        assert "home assistant" in kwargs["prompt"].lower()
+
+
 def test_pcm_to_wav():
     """Test that raw PCM samples can be wrapped in WAV format."""
     stt = SpeechToText(api_key="test-key")

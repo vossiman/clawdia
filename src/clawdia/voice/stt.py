@@ -6,6 +6,14 @@ import wave
 import openai
 from loguru import logger
 
+# Biases the decoder toward command-like phrasings and music titles over
+# free-form dialogue picked up from TV background noise
+CONTEXT_PROMPT = (
+    "Voice command to a home assistant: usually playing music "
+    "(song, artist, album or playlist names, e.g. 'Play Wonderwall by Oasis'), "
+    "pausing, skipping, volume, TV or PC control, or a short question."
+)
+
 
 class SpeechToText:
     """Transcribe audio using OpenAI Whisper API."""
@@ -34,6 +42,7 @@ class SpeechToText:
                 model=self.model,
                 file=audio_file,
                 language=language,
+                prompt=CONTEXT_PROMPT,
             )
             text = response.text.strip()
             logger.info("STT result: '{}'", text)
