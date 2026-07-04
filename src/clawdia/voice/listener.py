@@ -25,6 +25,8 @@ class WakeWordListener:
         cooldown: float = 5.0,
         patience: int = 1,
         vad_threshold: float = 0.0,
+        verifier_model: str = "",
+        verifier_threshold: float = 0.3,
         on_wake_word: Callable[[], Awaitable[None]] | None = None,
     ):
         self.model_path = model_path
@@ -34,6 +36,8 @@ class WakeWordListener:
         self.cooldown = cooldown
         self.patience = patience
         self.vad_threshold = vad_threshold
+        self.verifier_model = verifier_model
+        self.verifier_threshold = verifier_threshold
         self.on_wake_word = on_wake_word
         self._running = False
         self._oww_model = None
@@ -77,12 +81,22 @@ class WakeWordListener:
             model_module = importlib.import_module("openwakeword.model")
             model_cls = model_module.Model
 
+            kwargs: dict[str, Any] = {}
+            if self.verifier_model:
+                kwargs["custom_verifier_models"] = {self.model_path: self.verifier_model}
+                kwargs["custom_verifier_threshold"] = self.verifier_threshold
+
             self._oww_model = model_cls(
                 wakeword_models=[self.model_path],
                 inference_framework="onnx",
                 vad_threshold=self.vad_threshold,
+                **kwargs,
             )
-            logger.info("Wake word model loaded: {}", self.model_path)
+            logger.info(
+                "Wake word model loaded: {}{}",
+                self.model_path,
+                f" (verifier: {self.verifier_model})" if self.verifier_model else "",
+            )
         except ImportError:
             logger.warning("openwakeword not installed. Wake word detection disabled.")
         except Exception:

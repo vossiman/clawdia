@@ -228,6 +228,8 @@ async def run() -> None:
             cooldown=settings.wake_word_cooldown,
             patience=settings.wake_word_patience,
             vad_threshold=settings.wake_word_vad_threshold,
+            verifier_model=settings.wake_word_verifier_model,
+            verifier_threshold=settings.wake_word_verifier_threshold,
         )
 
         player = AudioPlayer()

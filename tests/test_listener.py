@@ -79,6 +79,45 @@ def test_vad_threshold_passed_to_model(monkeypatch):
     assert captured["wakeword_models"] == ["hey_jarvis_v0.1"]
 
 
+def _fake_oww(monkeypatch) -> dict:
+    captured: dict = {}
+
+    class FakeModel:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+    fake_module = types.ModuleType("openwakeword.model")
+    fake_module.Model = FakeModel
+    monkeypatch.setitem(sys.modules, "openwakeword.model", fake_module)
+    return captured
+
+
+def test_verifier_model_passed_to_model(monkeypatch):
+    """A configured verifier model is passed to openwakeword keyed by model name."""
+    captured = _fake_oww(monkeypatch)
+
+    listener = WakeWordListener(
+        model_path="hey_jarvis_v0.1",
+        verifier_model="/data/models/verifier.pkl",
+        verifier_threshold=0.3,
+    )
+    listener._init_model()
+
+    assert captured["custom_verifier_models"] == {"hey_jarvis_v0.1": "/data/models/verifier.pkl"}
+    assert captured["custom_verifier_threshold"] == 0.3
+
+
+def test_no_verifier_kwargs_when_unconfigured(monkeypatch):
+    """Without a verifier model, openwakeword gets no verifier kwargs."""
+    captured = _fake_oww(monkeypatch)
+
+    listener = WakeWordListener(model_path="hey_jarvis_v0.1")
+    listener._init_model()
+
+    assert "custom_verifier_models" not in captured
+    assert "custom_verifier_threshold" not in captured
+
+
 async def test_listener_callback_called():
     """Test that the on_wake_word callback is invoked correctly."""
     callback = AsyncMock()

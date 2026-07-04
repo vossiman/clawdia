@@ -98,6 +98,7 @@ max-statements = 130
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "S105", "S106", "S108", "B017"]
 "scripts/oauth_spotify.py" = ["E402"]
+"scripts/record_clips.py" = ["S603", "S607"]  # fixed-arg calls to system audio tools
 "src/clawdia/main.py" = ["C901", "PLR0912", "PLR0915"]
 "src/clawdia/orchestrator.py" = ["C901", "PLR0912", "PLR0915"]
 "src/clawdia/pc_agent/actions.py" = ["S108"]

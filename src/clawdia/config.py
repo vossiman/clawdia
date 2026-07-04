@@ -26,7 +26,11 @@ class Settings(BaseSettings):
     wake_word_threshold: float = 0.5
     wake_word_cooldown: float = 5.0
     wake_word_patience: int = 2  # consecutive frames above threshold required
-    wake_word_vad_threshold: float = 0.5  # Silero VAD gate; 0 disables
+    # VAD gate disabled by default: its 0.4-0.56s lookback lags speech onset
+    # and suppressed real wake words in testing (2026-07-04)
+    wake_word_vad_threshold: float = 0.0
+    wake_word_verifier_model: str = ""  # path to trained verifier .pkl; empty disables
+    wake_word_verifier_threshold: float = 0.3  # base-model score gate before verifier runs
     audio_sample_rate: int = 16000
     audio_chunk_size: int = 1280
 
