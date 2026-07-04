@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     wake_word_verifier_threshold: float = 0.3  # base-model score gate before verifier runs
     audio_sample_rate: int = 16000
     audio_chunk_size: int = 1280
+    # 250% digital gain: voice at couch distance was ~15x quieter than the
+    # TV at 100%, starving the wake word model (measured 2026-07-04)
+    mic_volume_percent: int = 250
 
     # TTS
     tts_model: str = "tts-1"
