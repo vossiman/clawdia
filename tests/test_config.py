@@ -9,7 +9,9 @@ def test_settings_defaults():
     assert s.stt_model == "gpt-4o-mini-transcribe"
     assert s.audio_sample_rate == 16000
     assert s.audio_chunk_size == 1280
-    assert s.wake_word_threshold == 0.4
+    assert s.wake_word_threshold == 0.5
+    assert s.wake_word_vad_threshold == 0.5
+    assert s.wake_word_patience == 2
     assert s.debug is False
 
 

@@ -226,6 +226,8 @@ async def run() -> None:
             sample_rate=settings.audio_sample_rate,
             chunk_size=settings.audio_chunk_size,
             cooldown=settings.wake_word_cooldown,
+            patience=settings.wake_word_patience,
+            vad_threshold=settings.wake_word_vad_threshold,
         )
 
         player = AudioPlayer()

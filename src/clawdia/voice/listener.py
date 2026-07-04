@@ -23,6 +23,8 @@ class WakeWordListener:
         sample_rate: int = 16000,
         chunk_size: int = 1280,
         cooldown: float = 5.0,
+        patience: int = 1,
+        vad_threshold: float = 0.0,
         on_wake_word: Callable[[], Awaitable[None]] | None = None,
     ):
         self.model_path = model_path
@@ -30,11 +32,38 @@ class WakeWordListener:
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
         self.cooldown = cooldown
+        self.patience = patience
+        self.vad_threshold = vad_threshold
         self.on_wake_word = on_wake_word
         self._running = False
         self._oww_model = None
-        self._last_detection: float = 0.0
+        self._last_detection: float | None = None
         self._suppressed = False
+        self._streak = 0
+
+    def _should_trigger(self, score: float, now: float | None = None) -> bool:
+        """Decide whether a frame's score triggers the wake word.
+
+        Requires `patience` consecutive frames above threshold to filter out
+        single-frame spikes from TV audio or music.
+        """
+        if now is None:
+            now = time.monotonic()
+        if self._suppressed:
+            self._streak = 0
+            return False
+        if score > self.threshold:
+            self._streak += 1
+        else:
+            self._streak = 0
+            return False
+        if self._streak < self.patience:
+            return False
+        if self._last_detection is not None and (now - self._last_detection) <= self.cooldown:
+            return False
+        self._streak = 0
+        self._last_detection = now
+        return True
 
     async def _on_detected(self) -> None:
         """Called when wake word is detected."""
@@ -51,6 +80,7 @@ class WakeWordListener:
             self._oww_model = model_cls(
                 wakeword_models=[self.model_path],
                 inference_framework="onnx",
+                vad_threshold=self.vad_threshold,
             )
             logger.info("Wake word model loaded: {}", self.model_path)
         except ImportError:
@@ -100,11 +130,7 @@ class WakeWordListener:
                         logger.debug(
                             "Wake word score: {:.3f} (threshold: {})", score, self.threshold
                         )
-                    if self._suppressed:
-                        continue
-                    now = time.monotonic()
-                    if score > self.threshold and (now - self._last_detection) > self.cooldown:
-                        self._last_detection = now
+                    if self._should_trigger(score):
                         await self._on_detected()
 
                 await asyncio.sleep(0)
