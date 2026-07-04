@@ -4,24 +4,6 @@ A Raspberry Pi voice assistant with IR remote control, Spotify playback, PC remo
 
 Cloud-first architecture: heavy compute (STT, LLM) runs via cloud APIs while the Pi handles wake word detection, audio capture, IR control, and orchestration.
 
-## ⚠️ Pending deployment (2026-07-02) — remove this section once done
-
-All Renovate dependency updates were merged to `main` on 2026-07-02, but the Pi was offline, so **the new code is not deployed yet**. Notable: `requires-python` was bumped to `>=3.14.4`, so the next deploy will have uv download managed CPython 3.14 (aarch64) and rebuild the venv, including a source build of `pyaudio` (needs `portaudio19-dev`, already installed on the Pi). Expect the sync to take a few minutes longer than usual.
-
-Once the Pi is back online, deploy with:
-
-```bash
-ssh clawdia "cd ~/clawdia && git pull && source ~/.local/bin/env && uv sync --frozen --extra voice && systemctl --user restart clawdia"
-```
-
-Then verify the service came up:
-
-```bash
-ssh clawdia "systemctl --user status clawdia --no-pager"
-```
-
-If Python 3.14 misbehaves on the device, the bump is a single squash commit and can be cleanly reverted: `git revert 3c72d8a` (PR #32), then redeploy.
-
 ## Features
 
 - **Voice control** via wake word detection ("Hey Jarvis") and OpenAI Whisper STT
