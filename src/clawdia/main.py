@@ -9,6 +9,7 @@ load_dotenv()
 
 from loguru import logger  # noqa: E402
 
+from clawdia.audio import AudioOutput  # noqa: E402
 from clawdia.brain import Brain  # noqa: E402
 from clawdia.config import settings  # noqa: E402
 from clawdia.ir import IRController  # noqa: E402
@@ -120,6 +121,12 @@ async def run() -> None:
     chat_ids = {int(x.strip()) for x in settings.telegram_chat_ids.split(",") if x.strip()}
     logger.info("Allowed Telegram chat IDs: {}", chat_ids)
 
+    audio = AudioOutput(
+        max_volume=settings.max_volume_percent,
+        startup_volume=settings.startup_volume_percent,
+        mic_volume=settings.mic_volume_percent,
+    )
+
     telegram = ClawdiaTelegramBot(
         token=settings.telegram_bot_token,
         chat_ids=chat_ids,
@@ -128,6 +135,7 @@ async def run() -> None:
         music=music,
         music_controllers=music_controllers or None,
         coordinator=coordinator,
+        audio=audio,
     )
 
     # Optional: STT (needs OpenAI API key)
@@ -161,6 +169,7 @@ async def run() -> None:
         knowledge=knowledge,
         coordinator=coordinator,
         interaction_logger=interaction_logger,
+        audio=audio,
     )
 
     # Wire orchestrator into telegram bot
@@ -192,20 +201,8 @@ async def run() -> None:
         )
     )
 
-    # Set up audio levels (system volume untouched)
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "pactl",
-            "set-source-volume",
-            "@DEFAULT_SOURCE@",
-            f"{settings.mic_volume_percent}%",
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-        await proc.wait()
-        logger.info("Audio levels initialized (mic: {}%)", settings.mic_volume_percent)
-    except Exception:
-        logger.warning("Failed to set audio levels via pactl")
+    # Set startup audio levels (mic gain + master output volume)
+    await audio.initialize()
 
     # Optional: Start wake word listener (needs hardware)
     listener_task = None
@@ -231,7 +228,7 @@ async def run() -> None:
             verifier_threshold=settings.wake_word_verifier_threshold,
         )
 
-        player = AudioPlayer()
+        player = AudioPlayer(tts_volume_percent=settings.tts_volume_percent)
 
         voice_reply = make_voice_reply(
             telegram=telegram,

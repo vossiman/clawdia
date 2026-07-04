@@ -142,24 +142,6 @@ class MusicController:
         await self._run(self._sp.previous_track, device_id=device_id)
         return "Back to previous track."
 
-    async def volume(self, level: int) -> str:
-        """Set system volume (0-100) via PulseAudio."""
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                "pactl",
-                "set-sink-volume",
-                "@DEFAULT_SINK@",
-                f"{level}%",
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.DEVNULL,
-            )
-            await proc.wait()
-            if proc.returncode != 0:
-                return f"Failed to set volume (pactl exit code {proc.returncode})."
-            return f"Volume set to {level}%."
-        except Exception:
-            return "Failed to set volume (pactl not available)."
-
     async def search(self, query: str, search_type: str = "track") -> list[dict]:
         """Search Spotify. Returns list of {name, artists, uri}."""
         results = await self._run(self._sp.search, q=query, type=search_type, limit=5)

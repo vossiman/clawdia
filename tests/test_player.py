@@ -22,10 +22,25 @@ async def test_play_file(player):
 
         mock_exec.assert_called_once_with(
             "paplay",
+            "--volume=65536",
             "/path/to/chime.wav",
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
+
+
+async def test_play_file_custom_tts_volume():
+    """tts_volume_percent scales the paplay stream volume (65536 = 100%)."""
+    player = AudioPlayer(tts_volume_percent=150)
+    with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
+        mock_proc = AsyncMock()
+        mock_proc.wait = AsyncMock(return_value=0)
+        mock_proc.returncode = 0
+        mock_exec.return_value = mock_proc
+
+        await player.play_file("/path/to/reply.wav")
+
+        assert mock_exec.call_args[0][1] == "--volume=98304"
 
 
 async def test_play_bytes_writes_temp_and_plays(player):
@@ -47,6 +62,7 @@ async def test_play_bytes_writes_temp_and_plays(player):
         mock_file.flush.assert_called_once()
         mock_exec.assert_called_once_with(
             "paplay",
+            "--volume=65536",
             "/tmp/clawdia_tts.wav",
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,

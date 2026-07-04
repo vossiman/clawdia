@@ -15,6 +15,9 @@ def test_settings_defaults():
     assert s.wake_word_verifier_model == ""
     assert s.wake_word_verifier_threshold == 0.3
     assert s.mic_volume_percent == 250
+    assert s.max_volume_percent == 80
+    assert s.startup_volume_percent == 60
+    assert s.tts_volume_percent == 100
     assert s.debug is False
 
 

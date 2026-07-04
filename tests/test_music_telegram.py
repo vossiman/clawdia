@@ -11,7 +11,12 @@ def music_mock():
 
 
 @pytest.fixture
-def bot(music_mock):
+def audio_mock():
+    return AsyncMock()
+
+
+@pytest.fixture
+def bot(music_mock, audio_mock):
     b = ClawdiaTelegramBot(
         token="test-token",
         chat_ids={12345},
@@ -19,6 +24,7 @@ def bot(music_mock):
         ir=MagicMock(),
         music=music_mock,
         music_controllers={12345: music_mock},
+        audio=audio_mock,
     )
     return b
 
@@ -76,17 +82,17 @@ async def test_np_command(bot, music_mock):
     music_mock.now_playing.assert_called_once()
 
 
-async def test_vol_command(bot, music_mock):
-    music_mock.volume.return_value = "Volume set to 75%."
+async def test_vol_command(bot, audio_mock):
+    audio_mock.set_volume.return_value = "Volume set to 75%."
     update, context = _make_update("/vol 75", args=["75"])
     await bot._handle_vol(update, context)
-    music_mock.volume.assert_called_once_with(75)
+    audio_mock.set_volume.assert_called_once_with(75)
 
 
-async def test_vol_no_arg(bot, music_mock):
+async def test_vol_no_arg(bot, audio_mock):
     update, context = _make_update("/vol", args=[])
     await bot._handle_vol(update, context)
-    music_mock.volume.assert_not_called()
+    audio_mock.set_volume.assert_not_called()
     update.message.reply_text.assert_called_once()
     assert "usage" in update.message.reply_text.call_args[0][0].lower()
 

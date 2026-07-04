@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # 250% digital gain: voice at couch distance was ~15x quieter than the
     # TV at 100%, starving the wake word model (measured 2026-07-04)
     mic_volume_percent: int = 250
+    max_volume_percent: int = 80  # cap on the master output volume
+    startup_volume_percent: int = 60  # master output volume set at startup
+    tts_volume_percent: int = 100  # TTS/chime stream volume relative to master
 
     # TTS
     tts_model: str = "tts-1"

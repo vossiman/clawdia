@@ -10,6 +10,7 @@ from loguru import logger
 from clawdia.logger_db import InteractionLogger, ms_since
 
 if TYPE_CHECKING:
+    from clawdia.audio import AudioOutput
     from clawdia.brain import Brain
     from clawdia.brain.models import ClawdiaResponse, MusicAction
     from clawdia.ir import IRController
@@ -25,7 +26,6 @@ MUSIC_DISPATCH = {
     "pause": lambda m, a: m.pause(),
     "skip": lambda m, a: m.skip(),
     "previous": lambda m, a: m.previous(),
-    "volume": lambda m, a: m.volume(a.volume),
     "play_query": lambda m, a: m.play_query(a.query),
     "play_playlist": lambda m, a: m.play_playlist(a.query),
     "queue": lambda m, a: m.queue_track(a.query),
@@ -52,12 +52,14 @@ class Orchestrator:
         knowledge: KnowledgeBase | None = None,
         coordinator: PlaybackCoordinator | None = None,
         interaction_logger: InteractionLogger | None = None,
+        audio: AudioOutput | None = None,
     ):
         self.brain = brain
         self.ir = ir
         self.telegram = telegram
         self.stt = stt
         self.music = music
+        self.audio = audio
         self.pc = pc
         self.knowledge = knowledge
         self.coordinator = coordinator
@@ -70,6 +72,11 @@ class Orchestrator:
         chat_id: int | None = None,
     ) -> str:
         """Dispatch a music action to the controller."""
+        if action.command == "volume":
+            # volume is system audio (master sink), not a Spotify concern
+            if not self.audio or action.volume is None:
+                return "Volume control is not available."
+            return await self.audio.set_volume(action.volume)
         handler = MUSIC_DISPATCH.get(action.command)
         if not handler:
             return f"Unknown music command: {action.command}"

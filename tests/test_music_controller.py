@@ -1,5 +1,4 @@
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -77,25 +76,6 @@ async def test_previous(controller, mock_spotify):
     result = await controller.previous()
     mock_spotify.previous_track.assert_called_once_with(device_id="dev123")
     assert "previous" in result.lower()
-
-
-async def test_volume(controller, mock_spotify):
-    with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.wait = AsyncMock(return_value=0)
-        mock_proc.returncode = 0
-        mock_exec.return_value = mock_proc
-
-        result = await controller.volume(75)
-        mock_exec.assert_called_once_with(
-            "pactl",
-            "set-sink-volume",
-            "@DEFAULT_SINK@",
-            "75%",
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-        assert "75" in result
 
 
 async def test_now_playing(controller, mock_spotify):

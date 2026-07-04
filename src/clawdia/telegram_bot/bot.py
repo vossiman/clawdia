@@ -15,6 +15,7 @@ from telegram.ext import (
 )
 
 if TYPE_CHECKING:
+    from clawdia.audio import AudioOutput
     from clawdia.brain import Brain
     from clawdia.ir import IRController
     from clawdia.music import MusicController
@@ -34,6 +35,7 @@ class ClawdiaTelegramBot:
         music: MusicController | None = None,
         music_controllers: dict[int, MusicController] | None = None,
         coordinator: PlaybackCoordinator | None = None,
+        audio: AudioOutput | None = None,
     ):
         self.token = token
         self.chat_ids = chat_ids
@@ -42,6 +44,7 @@ class ClawdiaTelegramBot:
         self.music = music
         self.music_controllers = music_controllers or {}
         self.coordinator = coordinator
+        self.audio = audio
         self._bot = telegram.Bot(token=token)
         self._app: Application | None = None
         self._orchestrator: Orchestrator | None = None
@@ -270,11 +273,10 @@ class ClawdiaTelegramBot:
         await message.reply_text(result)
 
     async def _handle_vol(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /vol <0-100> - set volume."""
+        """Handle /vol <0-100> - set master output volume."""
         message = self._require_message(update)
-        music = self._get_music(self._require_chat(update).id)
-        if not music:
-            await message.reply_text("Music playback is not configured.")
+        if not self.audio:
+            await message.reply_text("Volume control is not configured.")
             return
         if not context.args:
             await message.reply_text("Usage: /vol <0-100>\nExample: /vol 75")
@@ -284,7 +286,7 @@ class ClawdiaTelegramBot:
         except ValueError:
             await message.reply_text("Usage: /vol <0-100>\nExample: /vol 75")
             return
-        result = await music.volume(level)
+        result = await self.audio.set_volume(level)
         await message.reply_text(result)
 
     async def _handle_playlist(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

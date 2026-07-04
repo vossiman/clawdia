@@ -9,11 +9,16 @@ from loguru import logger
 class AudioPlayer:
     """Play audio through PulseAudio using paplay."""
 
+    def __init__(self, tts_volume_percent: int = 100):
+        # per-stream volume relative to the master sink; 65536 = 100%
+        self.tts_volume_percent = tts_volume_percent
+
     async def play_file(self, path: str) -> None:
         """Play a WAV file through the default PulseAudio sink."""
         try:
             proc = await asyncio.create_subprocess_exec(
                 "paplay",
+                f"--volume={int(65536 * self.tts_volume_percent / 100)}",
                 path,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,

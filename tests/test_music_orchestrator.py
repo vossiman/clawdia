@@ -46,12 +46,14 @@ async def test_handle_music_pause():
     mock_telegram.notify.assert_called_once_with("Playback paused.")
 
 
-async def test_handle_music_volume():
+async def test_handle_music_volume_routes_to_audio():
+    """Volume is a system-audio concern: routed to AudioOutput, not the music controller."""
     mock_brain = AsyncMock()
     mock_ir = MagicMock()
     mock_telegram = AsyncMock()
     mock_music = AsyncMock()
-    mock_music.volume.return_value = "Volume set to 50%."
+    mock_audio = AsyncMock()
+    mock_audio.set_volume.return_value = "Volume set to 50%."
 
     response = ClawdiaResponse(
         action="music",
@@ -60,10 +62,13 @@ async def test_handle_music_volume():
     )
     mock_brain.process.return_value = response
 
-    orch = Orchestrator(brain=mock_brain, ir=mock_ir, telegram=mock_telegram, music=mock_music)
+    orch = Orchestrator(
+        brain=mock_brain, ir=mock_ir, telegram=mock_telegram, music=mock_music, audio=mock_audio
+    )
     await orch.handle_text_command("set volume to 50")
 
-    mock_music.volume.assert_called_once_with(50)
+    mock_audio.set_volume.assert_called_once_with(50)
+    mock_music.volume.assert_not_called()
 
 
 async def test_handle_music_no_controller():
