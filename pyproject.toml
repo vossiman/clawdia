@@ -20,7 +20,7 @@ dependencies = [
 [project.optional-dependencies]
 voice = [
     "openwakeword>=0.6",
-    "onnxruntime>=1.27.0",
+    "onnxruntime>=1.29.0",
     "pyaudio>=0.2.14",
     "numpy>=2.5.0",
     "scipy>=1.18.0",
